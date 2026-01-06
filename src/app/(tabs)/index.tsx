@@ -193,49 +193,32 @@ export default function HomeScreen() {
             </Animated.View>
           </View>
 
-          {/* Quick Help Section */}
+          {/* Quick Help Section - Compact row */}
           <Animated.View
             entering={FadeInUp.duration(500).delay(600)}
-            className="mt-8"
+            className="mt-8 px-6"
           >
-            <Text
-              className="text-xl text-text-primary px-6 mb-4"
-              style={{ fontFamily: 'Nunito_700Bold' }}
-            >
-              💡 Aide rapide
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}
-              style={{ flexGrow: 0 }}
-            >
+            <View className="flex-row justify-between">
               {quickHelpItems.map((item, index) => (
                 <Pressable
                   key={index}
-                  className="bg-white rounded-2xl p-5 items-center active:opacity-80"
+                  className="flex-1 mx-1.5 bg-white/80 rounded-xl py-3 px-2 items-center active:opacity-70"
                   style={{
-                    width: 130,
-                    borderWidth: 2,
+                    borderWidth: 1,
                     borderColor: '#E8EAF6',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 4,
-                    elevation: 2,
                   }}
                 >
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>{item.emoji}</Text>
+                  <Text style={{ fontSize: 22, marginBottom: 4 }}>{item.emoji}</Text>
                   <Text
-                    className="text-base text-text-primary text-center"
+                    className="text-xs text-text-secondary text-center"
                     style={{ fontFamily: 'Nunito_600SemiBold' }}
-                    numberOfLines={2}
+                    numberOfLines={1}
                   >
                     {item.label}
                   </Text>
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
