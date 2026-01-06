@@ -24,7 +24,6 @@ export default function HomeScreen() {
 
   const quickHelpItems = [
     { icon: HelpCircle, label: 'Comment ça marche ?', emoji: '❓' },
-    { icon: Phone, label: 'Appeler un aidant', emoji: '📞' },
     { icon: Settings, label: 'Réglages', emoji: '⚙️' },
   ];
 
@@ -188,6 +187,31 @@ export default function HomeScreen() {
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
                   Mes documents
+                </Text>
+              </Pressable>
+            </Animated.View>
+
+            {/* Appeler un aidant - Grand bouton */}
+            <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+              <Pressable
+                className="bg-success rounded-2xl p-6 flex-row items-center active:opacity-90"
+                style={{
+                  minHeight: 72,
+                  shadowColor: '#4CAF50',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6,
+                }}
+              >
+                <View className="w-14 h-14 bg-white/20 rounded-2xl items-center justify-center">
+                  <Phone size={28} color="white" strokeWidth={2} />
+                </View>
+                <Text
+                  className="text-xl text-white ml-5 flex-1"
+                  style={{ fontFamily: 'Nunito_700Bold' }}
+                >
+                  Appeler un aidant
                 </Text>
               </Pressable>
             </Animated.View>
