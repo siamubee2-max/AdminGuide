@@ -111,10 +111,10 @@ export default function DocumentsScreen() {
         {/* Category Filter - Grid layout */}
         <Animated.View
           entering={FadeInUp.duration(400).delay(200)}
-          className="mb-4 px-6"
+          className="mb-3 px-6"
         >
           {/* First row: Tous, Santé, Énergie */}
-          <View className="flex-row mb-2">
+          <View className="flex-row mb-1.5">
             {CATEGORIES.slice(0, 3).map((category) => {
               const isSelected = selectedCategory === category.id;
               const count = categoryCounts[category.id];
@@ -123,29 +123,29 @@ export default function DocumentsScreen() {
                 <Pressable
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  className={`flex-1 mx-1 items-center rounded-xl py-3 ${
+                  className={`flex-1 mx-1 items-center rounded-lg py-2 ${
                     isSelected ? 'bg-primary' : 'bg-white'
                   }`}
                   style={{
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: isSelected ? '#1565C0' : '#E8EAF6',
                   }}
                 >
-                  <Text style={{ fontSize: 20 }}>{category.icon}</Text>
+                  <Text style={{ fontSize: 16 }}>{category.icon}</Text>
                   <Text
-                    className={`text-sm mt-1 ${isSelected ? 'text-white' : 'text-text-primary'}`}
+                    className={`text-xs mt-0.5 ${isSelected ? 'text-white' : 'text-text-primary'}`}
                     style={{ fontFamily: 'Nunito_600SemiBold' }}
                   >
                     {category.label}
                   </Text>
                   <View
-                    className={`mt-1 rounded-md px-2 ${
+                    className={`mt-0.5 rounded px-1.5 ${
                       isSelected ? 'bg-white/20' : 'bg-gray-100'
                     }`}
                   >
                     <Text
                       className={`text-xs ${isSelected ? 'text-white' : 'text-text-secondary'}`}
-                      style={{ fontFamily: 'Nunito_700Bold' }}
+                      style={{ fontFamily: 'Nunito_700Bold', fontSize: 10 }}
                     >
                       {count}
                     </Text>
@@ -164,29 +164,29 @@ export default function DocumentsScreen() {
                 <Pressable
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  className={`flex-1 mx-1 items-center rounded-xl py-3 ${
+                  className={`flex-1 mx-1 items-center rounded-lg py-2 ${
                     isSelected ? 'bg-primary' : 'bg-white'
                   }`}
                   style={{
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: isSelected ? '#1565C0' : '#E8EAF6',
                   }}
                 >
-                  <Text style={{ fontSize: 20 }}>{category.icon}</Text>
+                  <Text style={{ fontSize: 16 }}>{category.icon}</Text>
                   <Text
-                    className={`text-sm mt-1 ${isSelected ? 'text-white' : 'text-text-primary'}`}
+                    className={`text-xs mt-0.5 ${isSelected ? 'text-white' : 'text-text-primary'}`}
                     style={{ fontFamily: 'Nunito_600SemiBold' }}
                   >
                     {category.label}
                   </Text>
                   <View
-                    className={`mt-1 rounded-md px-2 ${
+                    className={`mt-0.5 rounded px-1.5 ${
                       isSelected ? 'bg-white/20' : 'bg-gray-100'
                     }`}
                   >
                     <Text
                       className={`text-xs ${isSelected ? 'text-white' : 'text-text-secondary'}`}
-                      style={{ fontFamily: 'Nunito_700Bold' }}
+                      style={{ fontFamily: 'Nunito_700Bold', fontSize: 10 }}
                     >
                       {count}
                     </Text>
