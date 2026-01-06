@@ -108,18 +108,14 @@ export default function DocumentsScreen() {
           </View>
         </Animated.View>
 
-        {/* Category Filter */}
+        {/* Category Filter - Grid layout */}
         <Animated.View
           entering={FadeInUp.duration(400).delay(200)}
-          className="mb-4"
+          className="mb-4 px-6"
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
-            style={{ flexGrow: 0 }}
-          >
-            {CATEGORIES.map((category) => {
+          {/* First row: Tous, Santé, Énergie */}
+          <View className="flex-row mb-2">
+            {CATEGORIES.slice(0, 3).map((category) => {
               const isSelected = selectedCategory === category.id;
               const count = categoryCounts[category.id];
 
@@ -127,33 +123,28 @@ export default function DocumentsScreen() {
                 <Pressable
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  className={`flex-row items-center rounded-xl px-5 py-3 ${
+                  className={`flex-1 mx-1 items-center rounded-xl py-3 ${
                     isSelected ? 'bg-primary' : 'bg-white'
                   }`}
                   style={{
                     borderWidth: 2,
                     borderColor: isSelected ? '#1565C0' : '#E8EAF6',
-                    shadowColor: isSelected ? '#1565C0' : '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isSelected ? 0.2 : 0.05,
-                    shadowRadius: 4,
-                    elevation: isSelected ? 4 : 2,
                   }}
                 >
-                  <Text style={{ fontSize: 20, marginRight: 8 }}>{category.icon}</Text>
+                  <Text style={{ fontSize: 20 }}>{category.icon}</Text>
                   <Text
-                    className={`text-base ${isSelected ? 'text-white' : 'text-text-primary'}`}
+                    className={`text-sm mt-1 ${isSelected ? 'text-white' : 'text-text-primary'}`}
                     style={{ fontFamily: 'Nunito_600SemiBold' }}
                   >
                     {category.label}
                   </Text>
                   <View
-                    className={`ml-2 rounded-lg px-2 py-0.5 ${
+                    className={`mt-1 rounded-md px-2 ${
                       isSelected ? 'bg-white/20' : 'bg-gray-100'
                     }`}
                   >
                     <Text
-                      className={`text-sm ${isSelected ? 'text-white' : 'text-text-secondary'}`}
+                      className={`text-xs ${isSelected ? 'text-white' : 'text-text-secondary'}`}
                       style={{ fontFamily: 'Nunito_700Bold' }}
                     >
                       {count}
@@ -162,7 +153,48 @@ export default function DocumentsScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
+          {/* Second row: Pension, Banque */}
+          <View className="flex-row">
+            {CATEGORIES.slice(3).map((category) => {
+              const isSelected = selectedCategory === category.id;
+              const count = categoryCounts[category.id];
+
+              return (
+                <Pressable
+                  key={category.id}
+                  onPress={() => setSelectedCategory(category.id)}
+                  className={`flex-1 mx-1 items-center rounded-xl py-3 ${
+                    isSelected ? 'bg-primary' : 'bg-white'
+                  }`}
+                  style={{
+                    borderWidth: 2,
+                    borderColor: isSelected ? '#1565C0' : '#E8EAF6',
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>{category.icon}</Text>
+                  <Text
+                    className={`text-sm mt-1 ${isSelected ? 'text-white' : 'text-text-primary'}`}
+                    style={{ fontFamily: 'Nunito_600SemiBold' }}
+                  >
+                    {category.label}
+                  </Text>
+                  <View
+                    className={`mt-1 rounded-md px-2 ${
+                      isSelected ? 'bg-white/20' : 'bg-gray-100'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs ${isSelected ? 'text-white' : 'text-text-secondary'}`}
+                      style={{ fontFamily: 'Nunito_700Bold' }}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
         </Animated.View>
 
         {/* Document List */}
