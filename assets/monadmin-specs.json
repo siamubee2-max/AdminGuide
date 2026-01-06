@@ -1,0 +1,538 @@
+{
+  "app": {
+    "name": "MonAdmin",
+    "description": "Assistant administratif IA pour seniors - Scannez vos courriers, comprenez tout simplement",
+    "version": "1.0.0",
+    "language": "fr"
+  },
+  
+  "design": {
+    "theme": "senior-friendly",
+    "colors": {
+      "primary": "#1565C0",
+      "primaryDark": "#0D47A1",
+      "secondary": "#1A237E",
+      "background": "#F5F5F5",
+      "surface": "#FFFFFF",
+      "success": "#4CAF50",
+      "successLight": "#E8F5E9",
+      "warning": "#FF9800",
+      "warningLight": "#FFF3E0",
+      "danger": "#F44336",
+      "dangerLight": "#FFEBEE",
+      "textPrimary": "#1A237E",
+      "textSecondary": "#5C6BC0",
+      "border": "#E8EAF6"
+    },
+    "typography": {
+      "fontFamily": "Nunito, sans-serif",
+      "sizes": {
+        "small": "16px",
+        "base": "18px",
+        "large": "22px",
+        "title": "28px",
+        "hero": "32px"
+      },
+      "weights": {
+        "normal": 400,
+        "semibold": 600,
+        "bold": 700,
+        "extrabold": 800
+      }
+    },
+    "spacing": {
+      "xs": "8px",
+      "sm": "12px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px"
+    },
+    "borderRadius": {
+      "small": "12px",
+      "medium": "16px",
+      "large": "20px",
+      "round": "50px",
+      "circle": "50%"
+    },
+    "buttons": {
+      "minHeight": "72px",
+      "padding": "18px 32px",
+      "iconSize": "28px"
+    },
+    "accessibility": {
+      "contrastRatio": "7:1",
+      "minTouchTarget": "60px",
+      "noSwipeRequired": true
+    }
+  },
+  
+  "screens": [
+    {
+      "id": "accueil",
+      "name": "Accueil",
+      "path": "/",
+      "layout": "scroll",
+      "components": [
+        {
+          "type": "header",
+          "style": "gradient",
+          "background": "linear-gradient(180deg, #E3F2FD 0%, #FFFFFF 30%)",
+          "children": [
+            {
+              "type": "avatar",
+              "size": "120px",
+              "icon": "👴",
+              "background": "linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)",
+              "border": "4px solid white",
+              "shadow": true
+            },
+            {
+              "type": "text",
+              "content": "Bonjour Marie ! 👋",
+              "style": "hero",
+              "dynamic": true,
+              "logic": "Afficher Bonjour/Bonsoir selon l'heure"
+            },
+            {
+              "type": "text",
+              "content": "Comment puis-je vous aider ?",
+              "style": "subtitle"
+            }
+          ]
+        },
+        {
+          "type": "alert",
+          "id": "alerte-courriers",
+          "condition": "documentsEnAttente > 0",
+          "icon": "⚠️",
+          "background": "#FFF3E0",
+          "border": "3px solid #FFB74D",
+          "title": "{count} courrier(s) à traiter",
+          "subtitle": "Dont 1 urgent"
+        },
+        {
+          "type": "buttonGroup",
+          "direction": "vertical",
+          "gap": "20px",
+          "padding": "0 24px",
+          "buttons": [
+            {
+              "id": "btn-scanner",
+              "label": "Scanner un courrier",
+              "icon": "📸",
+              "variant": "primary",
+              "action": "navigate",
+              "target": "scanner"
+            },
+            {
+              "id": "btn-vocal",
+              "label": "Parler à MonAdmin",
+              "icon": "🎤",
+              "variant": "secondary",
+              "action": "navigate",
+              "target": "vocal"
+            },
+            {
+              "id": "btn-documents",
+              "label": "Mes documents",
+              "icon": "📁",
+              "variant": "secondary",
+              "action": "navigate",
+              "target": "documents"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "title": "💡 Aide rapide",
+          "layout": "horizontalScroll",
+          "children": [
+            {
+              "type": "card",
+              "icon": "❓",
+              "label": "Comment ça marche ?"
+            },
+            {
+              "type": "card",
+              "icon": "📞",
+              "label": "Appeler un aidant"
+            },
+            {
+              "type": "card",
+              "icon": "⚙️",
+              "label": "Réglages"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scanner",
+      "name": "Scanner un courrier",
+      "path": "/scanner",
+      "hideNavigation": true,
+      "background": "#0D47A1",
+      "components": [
+        {
+          "type": "header",
+          "title": "Scanner un courrier",
+          "subtitle": "Placez le document dans le cadre",
+          "backButton": true,
+          "backTarget": "accueil"
+        },
+        {
+          "type": "cameraView",
+          "style": {
+            "background": "#1A237E",
+            "borderRadius": "24px",
+            "border": "4px solid #5C6BC0"
+          },
+          "frame": {
+            "border": "4px dashed #64B5F6",
+            "borderRadius": "20px"
+          },
+          "states": {
+            "ready": {
+              "icon": "📄",
+              "text": "Placez votre courrier ici"
+            },
+            "capturing": {
+              "loader": true,
+              "text": "Photo prise !"
+            },
+            "analyzing": {
+              "loader": true,
+              "loaderColor": "#81C784",
+              "text": "MonAdmin lit votre courrier...",
+              "subtext": "Un instant s'il vous plaît"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "label": "Prendre la photo",
+          "icon": "📸",
+          "variant": "success",
+          "action": "capture",
+          "onSuccess": "navigate:resultat"
+        }
+      ]
+    },
+    {
+      "id": "resultat",
+      "name": "Résultat",
+      "path": "/resultat",
+      "components": [
+        {
+          "type": "header",
+          "title": "Votre courrier",
+          "subtitle": "{document.organisme}",
+          "backButton": true,
+          "backTarget": "accueil",
+          "actions": [
+            {
+              "type": "iconButton",
+              "icon": "🔈",
+              "iconActive": "🔊",
+              "action": "readAloud",
+              "target": "explication"
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "children": [
+            {
+              "type": "row",
+              "justify": "space-between",
+              "children": [
+                {
+                  "type": "badge",
+                  "content": "{document.type}",
+                  "variant": "neutral"
+                },
+                {
+                  "type": "urgenceBadge",
+                  "level": "{document.urgence}",
+                  "variants": {
+                    "vert": {
+                      "background": "#E8F5E9",
+                      "border": "#4CAF50",
+                      "text": "#2E7D32",
+                      "label": "Pas urgent",
+                      "icon": "✓"
+                    },
+                    "orange": {
+                      "background": "#FFF3E0",
+                      "border": "#FF9800",
+                      "text": "#E65100",
+                      "label": "Cette semaine",
+                      "icon": "!"
+                    },
+                    "rouge": {
+                      "background": "#FFEBEE",
+                      "border": "#F44336",
+                      "text": "#C62828",
+                      "label": "Urgent",
+                      "icon": "⚠"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "title",
+              "content": "{document.titre}",
+              "size": "28px"
+            },
+            {
+              "type": "infoGrid",
+              "columns": 2,
+              "background": "#F5F5F5",
+              "items": [
+                {
+                  "condition": "document.montant",
+                  "label": "💰 Montant",
+                  "value": "{document.montant}"
+                },
+                {
+                  "condition": "document.dateLimite",
+                  "label": "📅 À faire avant",
+                  "value": "{document.dateLimite}"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "id": "explication",
+              "background": "#E3F2FD",
+              "borderLeft": "6px solid #1565C0",
+              "title": "💬 Ce que ça veut dire",
+              "content": "{document.explication}"
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "children": [
+            {
+              "type": "title",
+              "content": "✅ Ce que vous devez faire",
+              "size": "22px"
+            },
+            {
+              "type": "box",
+              "background": "#E8F5E9",
+              "border": "3px solid #81C784",
+              "content": "{document.action}"
+            }
+          ]
+        },
+        {
+          "type": "buttonGroup",
+          "direction": "vertical",
+          "gap": "16px",
+          "buttons": [
+            {
+              "label": "M'aider à répondre",
+              "icon": "✍️",
+              "variant": "primary",
+              "action": "generateResponse"
+            },
+            {
+              "label": "Me rappeler plus tard",
+              "icon": "⏰",
+              "variant": "warning",
+              "action": "setReminder"
+            },
+            {
+              "label": "Archiver ce document",
+              "icon": "📁",
+              "variant": "secondary",
+              "action": "archive",
+              "onSuccess": "navigate:documents"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "documents",
+      "name": "Mes documents",
+      "path": "/documents",
+      "components": [
+        {
+          "type": "header",
+          "title": "Mes documents",
+          "subtitle": "{documents.length} documents"
+        },
+        {
+          "type": "searchBar",
+          "placeholder": "Rechercher un document...",
+          "icon": "🔍",
+          "voiceSearch": true
+        },
+        {
+          "type": "categoryFilter",
+          "scrollable": true,
+          "categories": [
+            { "id": "tous", "label": "Tous", "icon": "📋", "count": 3 },
+            { "id": "sante", "label": "Santé", "icon": "🏥", "count": 1 },
+            { "id": "energie", "label": "Énergie", "icon": "💡", "count": 1 },
+            { "id": "pension", "label": "Pension", "icon": "👴", "count": 1 },
+            { "id": "banque", "label": "Banque", "icon": "🏦", "count": 0 }
+          ]
+        },
+        {
+          "type": "documentList",
+          "source": "documents",
+          "filter": "selectedCategory",
+          "cardStyle": {
+            "borderLeft": "6px solid {urgenceColor}",
+            "shadow": true
+          },
+          "onItemClick": "navigate:resultat"
+        }
+      ]
+    },
+    {
+      "id": "vocal",
+      "name": "Mode Vocal",
+      "path": "/vocal",
+      "hideNavigation": true,
+      "background": "linear-gradient(180deg, #1565C0 0%, #0D47A1 100%)",
+      "components": [
+        {
+          "type": "header",
+          "minimal": true,
+          "backButton": true,
+          "backTarget": "accueil",
+          "style": "transparent"
+        },
+        {
+          "type": "voiceInterface",
+          "avatar": {
+            "size": "180px",
+            "iconIdle": "🤖",
+            "iconListening": "👂",
+            "backgroundIdle": "linear-gradient(135deg, #FFFFFF 0%, #E3F2FD 100%)",
+            "backgroundListening": "linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)",
+            "pulseAnimation": true
+          },
+          "states": {
+            "idle": {
+              "title": "Parler à MonAdmin",
+              "description": "Appuyez sur le micro et posez votre question"
+            },
+            "listening": {
+              "title": "Je vous écoute..."
+            }
+          },
+          "examples": [
+            "\"Lis-moi mon dernier courrier\"",
+            "\"Où est ma facture EDF ?\"",
+            "\"Qu'est-ce que je dois faire cette semaine ?\""
+          ],
+          "micButton": {
+            "size": "100px",
+            "iconIdle": "🎤",
+            "iconListening": "⏹",
+            "colorIdle": "#FFFFFF",
+            "colorListening": "#F44336"
+          }
+        }
+      ]
+    }
+  ],
+  
+  "navigation": {
+    "type": "bottomBar",
+    "position": "fixed",
+    "hideOn": ["scanner", "vocal"],
+    "items": [
+      { "id": "accueil", "label": "Accueil", "icon": "🏠", "path": "/" },
+      { "id": "scanner", "label": "Scanner", "icon": "📸", "path": "/scanner" },
+      { "id": "documents", "label": "Documents", "icon": "📁", "path": "/documents" }
+    ],
+    "style": {
+      "background": "#FFFFFF",
+      "borderTop": "2px solid #E8EAF6",
+      "padding": "12px 20px 28px 20px",
+      "shadow": "0 -4px 20px rgba(0,0,0,0.08)"
+    }
+  },
+  
+  "data": {
+    "documents": [
+      {
+        "id": 1,
+        "type": "Facture",
+        "organisme": "Engie",
+        "titre": "Facture électricité",
+        "urgence": "orange",
+        "urgenceLabel": "Cette semaine",
+        "urgenceIcon": "!",
+        "montant": "127,50€",
+        "dateLimite": "15 janvier 2026",
+        "explication": "C'est votre facture d'électricité pour décembre. Vous devez payer 127,50€ avant le 15 janvier. Vous pouvez payer par virement ou prélèvement automatique.",
+        "action": "Payer 127,50€ avant le 15 janvier",
+        "categorie": "energie"
+      },
+      {
+        "id": 2,
+        "type": "Convocation",
+        "organisme": "Mutualité Chrétienne",
+        "titre": "Convocation médecin conseil",
+        "urgence": "rouge",
+        "urgenceLabel": "Urgent",
+        "urgenceIcon": "⚠",
+        "dateLimite": "10 janvier 2026",
+        "explication": "Votre mutuelle vous demande de voir leur médecin conseil. C'est pour vérifier votre dossier de remboursement. Le rendez-vous est obligatoire.",
+        "action": "Aller au rendez-vous le 10 janvier à 10h30",
+        "categorie": "sante"
+      },
+      {
+        "id": 3,
+        "type": "Information",
+        "organisme": "Pension Service",
+        "titre": "Attestation de pension",
+        "urgence": "vert",
+        "urgenceLabel": "Pas urgent",
+        "urgenceIcon": "✓",
+        "explication": "C'est un document qui confirme le montant de votre pension. Vous n'avez rien à faire, c'est juste pour vos dossiers.",
+        "action": "Rien à faire, à conserver",
+        "categorie": "pension"
+      }
+    ],
+    "user": {
+      "name": "Marie",
+      "avatar": "👴"
+    }
+  },
+  
+  "features": {
+    "ocr": {
+      "enabled": true,
+      "provider": "Claude Vision API",
+      "description": "Extraction du texte des documents photographiés"
+    },
+    "aiAnalysis": {
+      "enabled": true,
+      "provider": "Claude API",
+      "prompt": "Analyse ce document administratif et explique-le simplement à une personne âgée en 3 phrases maximum. Indique le type, l'urgence, le montant si applicable, et l'action à faire."
+    },
+    "textToSpeech": {
+      "enabled": true,
+      "language": "fr-FR",
+      "rate": 0.85
+    },
+    "voiceInput": {
+      "enabled": true,
+      "language": "fr-FR"
+    },
+    "reminders": {
+      "enabled": true,
+      "notifications": ["push", "sms"]
+    }
+  }
+}
