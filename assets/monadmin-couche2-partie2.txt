@@ -1,0 +1,1060 @@
+================================================================
+MONADMIN - COUCHE 2 : CONSTRUCTION COMPLÈTE
+================================================================
+PARTIE 2 : API, NOTIFICATIONS, FAMILLE, STOCKAGE
+================================================================
+
+
+================================================================
+PARTIE 3 : SPÉCIFICATIONS API COMPLÈTES
+================================================================
+
+3.1 ENDPOINTS API - DOCUMENTS
+-----------------------------
+
+POST /api/documents/analyze
+Description : Analyse un document scanné avec OCR et IA
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "image": "base64_encoded_image",
+  "userId": "user_001",
+  "parametres": {
+    "langue": "fr",
+    "analyseDetaillee": true
+  }
+}
+
+Réponse succès (200) :
+{
+  "success": true,
+  "document": {
+    "id": "doc_20260107_001",
+    "userId": "user_001",
+    "type": "facture",
+    "organisme": "Engie",
+    "titre": "Facture électricité - Décembre 2025",
+    "categorie": "energie",
+    "urgence": "orange",
+    "urgenceLabel": "Cette semaine",
+    "urgenceIcon": "!",
+    "montant": 127.50,
+    "montantFormate": "127,50 €",
+    "dateLimite": "2026-01-15",
+    "dateLimiteFormatee": "15 janvier 2026",
+    "explication": "C'est votre facture d'électricité pour le mois de décembre. Le montant à payer est de 127,50 euros. Vous devez payer avant le 15 janvier pour éviter des frais de retard.",
+    "action": "Payer 127,50 € avant le 15 janvier par virement ou prélèvement automatique.",
+    "status": "en_attente",
+    "imageUrl": "https://storage.monadmin.app/docs/user_001/doc_20260107_001.jpg",
+    "texteOCR": "ENGIE\nFacture n°2025120001\nMontant TTC: 127,50 EUR\nDate limite: 15/01/2026...",
+    "dateCreation": "2026-01-07T10:30:00Z",
+    "dateModification": "2026-01-07T10:30:00Z",
+    "confiance": 0.95
+  }
+}
+
+Réponse erreur (400) :
+{
+  "success": false,
+  "error": {
+    "code": "IMAGE_FLOUE",
+    "message": "La photo n'est pas assez nette pour être analysée.",
+    "suggestion": "Essayez avec plus de lumière et tenez l'appareil bien stable."
+  }
+}
+
+Codes d'erreur possibles :
+- IMAGE_FLOUE : Image trop floue
+- PAS_DE_TEXTE : Aucun texte détecté
+- DOCUMENT_COUPE : Document partiellement visible
+- FORMAT_NON_SUPPORTE : Format d'image non supporté
+- TAILLE_EXCESSIVE : Image trop grande (max 10MB)
+
+
+---
+
+GET /api/documents
+Description : Récupère tous les documents d'un utilisateur
+Authentification : Token utilisateur requis
+
+Paramètres query :
+- userId : obligatoire
+- categorie : optionnel (filtre par catégorie)
+- status : optionnel ("en_attente", "termine", "archive")
+- dateDebut : optionnel (ISO date)
+- dateFin : optionnel (ISO date)
+- tri : optionnel ("urgence", "date_creation", "date_limite")
+- ordre : optionnel ("asc", "desc")
+- page : optionnel (défaut: 1)
+- limite : optionnel (défaut: 20, max: 100)
+
+Réponse (200) :
+{
+  "success": true,
+  "documents": [...],
+  "pagination": {
+    "page": 1,
+    "limite": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+
+
+---
+
+GET /api/documents/{documentId}
+Description : Récupère un document spécifique
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "document": { ... }
+}
+
+
+---
+
+PUT /api/documents/{documentId}
+Description : Met à jour un document
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "status": "archive",
+  "notes": "Payé le 10 janvier"
+}
+
+Réponse (200) :
+{
+  "success": true,
+  "document": { ... document mis à jour ... }
+}
+
+
+---
+
+DELETE /api/documents/{documentId}
+Description : Supprime un document
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "message": "Document supprimé"
+}
+
+
+---
+
+POST /api/documents/{documentId}/generate-response
+Description : Génère une réponse (lettre ou email) pour un document
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "type": "lettre",
+  "userId": "user_001",
+  "infosUtilisateur": {
+    "prenom": "Marie",
+    "nom": "Dupont",
+    "adresse": "123 rue des Fleurs, 1000 Bruxelles",
+    "telephone": "+32 475 12 34 56"
+  },
+  "personnalisation": {
+    "ton": "formel",
+    "inclureReference": true
+  }
+}
+
+Réponse (200) :
+{
+  "success": true,
+  "reponse": {
+    "type": "lettre",
+    "destinataire": {
+      "nom": "Service Client Engie",
+      "adresse": "Boulevard du Régent 47, 1000 Bruxelles",
+      "reference": "Facture n°2025120001"
+    },
+    "objet": "Demande de délai de paiement - Facture n°2025120001",
+    "corps": "Madame, Monsieur,\n\nJe me permets de vous contacter concernant la facture n°2025120001 d'un montant de 127,50 €.\n\n[Corps de la lettre généré par IA]\n\nDans l'attente de votre réponse, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.",
+    "signature": "Marie Dupont\n123 rue des Fleurs\n1000 Bruxelles\nTél: +32 475 12 34 56",
+    "dateGeneration": "2026-01-07T11:00:00Z"
+  }
+}
+
+
+3.2 ENDPOINTS API - RAPPELS
+---------------------------
+
+POST /api/reminders
+Description : Crée un nouveau rappel
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "documentId": "doc_20260107_001",
+  "userId": "user_001",
+  "dateRappel": "2026-01-14T09:00:00Z",
+  "message": "N'oubliez pas : Facture Engie à payer",
+  "type": "notification",
+  "recurrence": null
+}
+
+Réponse (201) :
+{
+  "success": true,
+  "rappel": {
+    "id": "rem_001",
+    "documentId": "doc_20260107_001",
+    "userId": "user_001",
+    "dateRappel": "2026-01-14T09:00:00Z",
+    "message": "N'oubliez pas : Facture Engie à payer",
+    "type": "notification",
+    "status": "programme",
+    "dateCreation": "2026-01-07T11:30:00Z"
+  }
+}
+
+
+---
+
+GET /api/reminders
+Description : Récupère les rappels d'un utilisateur
+Authentification : Token utilisateur requis
+
+Paramètres query :
+- userId : obligatoire
+- status : optionnel ("programme", "envoye", "annule")
+- dateDebut : optionnel
+- dateFin : optionnel
+
+Réponse (200) :
+{
+  "success": true,
+  "rappels": [...]
+}
+
+
+---
+
+DELETE /api/reminders/{reminderId}
+Description : Annule un rappel
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "message": "Rappel annulé"
+}
+
+
+3.3 ENDPOINTS API - COMMANDES VOCALES
+-------------------------------------
+
+POST /api/voice/command
+Description : Traite une commande vocale
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "userId": "user_001",
+  "transcription": "où est ma facture d'électricité",
+  "contexte": {
+    "pageActuelle": "vocal",
+    "nombreDocuments": 15,
+    "derniereAction": null
+  }
+}
+
+Réponse (200) :
+{
+  "success": true,
+  "intention": "recherche_document",
+  "parametres": {
+    "termeRecherche": "facture électricité",
+    "categorie": "energie"
+  },
+  "action": {
+    "type": "afficher_document",
+    "documentId": "doc_20260107_001"
+  },
+  "reponse": "J'ai trouvé votre facture d'électricité d'Engie. Je vous la montre.",
+  "parler": true,
+  "confiance": 0.92
+}
+
+Intentions possibles :
+- recherche_document : Chercher un document
+- lire_document : Lire un document à voix haute
+- scanner : Aller au scanner
+- lister_actions : Lister les actions en attente
+- creer_rappel : Créer un rappel
+- appeler_aidant : Appeler un membre de la famille
+- aide : Demande d'aide
+- salutation : Dire bonjour
+- inconnu : Intention non reconnue
+
+
+3.4 ENDPOINTS API - UTILISATEURS
+--------------------------------
+
+GET /api/users/{userId}
+Description : Récupère le profil utilisateur
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "utilisateur": {
+    "id": "user_001",
+    "prenom": "Marie",
+    "nom": "Dupont",
+    "avatar": "👴",
+    "email": "marie.dupont@email.be",
+    "telephone": "+32 475 12 34 56",
+    "adresse": "123 rue des Fleurs, 1000 Bruxelles",
+    "dateNaissance": "1950-03-15",
+    "dateInscription": "2025-12-01T10:00:00Z",
+    "derniereConnexion": "2026-01-07T09:00:00Z",
+    "parametres": {
+      "taillePolice": "grand",
+      "volumeVocal": 80,
+      "vitesseVocal": 0.85,
+      "notificationsActives": true,
+      "rappelsJoursAvant": [1, 3, 7],
+      "vibrationsActives": true,
+      "modeSombre": false,
+      "langueVocale": "fr-BE"
+    }
+  }
+}
+
+
+---
+
+PUT /api/users/{userId}
+Description : Met à jour le profil utilisateur
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "parametres": {
+    "taillePolice": "tres_grand",
+    "volumeVocal": 90
+  }
+}
+
+Réponse (200) :
+{
+  "success": true,
+  "utilisateur": { ... }
+}
+
+
+3.5 ENDPOINTS API - FAMILLE / AIDANTS
+-------------------------------------
+
+POST /api/family/invite
+Description : Invite un aidant
+Authentification : Token utilisateur requis
+
+Requête :
+{
+  "seniorId": "user_001",
+  "prenom": "Jean",
+  "nom": "Dupont",
+  "email": "jean.dupont@email.be",
+  "telephone": "+32 476 98 76 54",
+  "relation": "fils",
+  "permissions": ["voir_documents", "recevoir_alertes", "aider_repondre"],
+  "notificationsUrgentes": true,
+  "alerteInactivite": true,
+  "joursInactiviteAlerte": 7
+}
+
+Réponse (201) :
+{
+  "success": true,
+  "invitation": {
+    "id": "inv_001",
+    "status": "envoyee",
+    "dateExpiration": "2026-01-14T00:00:00Z"
+  },
+  "message": "Une invitation a été envoyée à Jean par email et SMS."
+}
+
+
+---
+
+GET /api/family/{seniorId}/helpers
+Description : Liste les aidants d'un senior
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "aidants": [
+    {
+      "id": "helper_001",
+      "prenom": "Jean",
+      "nom": "Dupont",
+      "relation": "fils",
+      "telephone": "+32 476 98 76 54",
+      "permissions": ["voir_documents", "recevoir_alertes", "aider_repondre"],
+      "dateAjout": "2025-12-15T14:00:00Z",
+      "dernierAcces": "2026-01-06T18:30:00Z"
+    }
+  ]
+}
+
+
+---
+
+DELETE /api/family/helpers/{helperId}
+Description : Retire un aidant
+Authentification : Token utilisateur requis
+
+Réponse (200) :
+{
+  "success": true,
+  "message": "Aidant retiré de la liste"
+}
+
+
+---
+
+POST /api/family/alert
+Description : Envoie une alerte aux aidants
+Authentification : Token utilisateur ou système
+
+Requête :
+{
+  "seniorId": "user_001",
+  "type": "document_urgent",
+  "documentId": "doc_20260107_002",
+  "message": "Marie a reçu un courrier urgent",
+  "priorite": "haute"
+}
+
+Réponse (200) :
+{
+  "success": true,
+  "alertesEnvoyees": 2,
+  "details": [
+    { "aidantId": "helper_001", "canal": "notification", "status": "envoye" },
+    { "aidantId": "helper_001", "canal": "sms", "status": "envoye" }
+  ]
+}
+
+
+================================================================
+PARTIE 4 : SYSTÈME DE NOTIFICATIONS
+================================================================
+
+4.1 TYPES DE NOTIFICATIONS
+--------------------------
+
+Type 1 : Rappel de date limite
+Déclencheur : Cron job vérifie les dates limites chaque jour à 8h
+Timing : J-7, J-3, J-1, J-0
+
+{
+  "type": "rappel_date_limite",
+  "titre": "📅 Rappel MonAdmin",
+  "corps": "N'oubliez pas : Facture Engie (127,50 €) à payer avant le 15 janvier",
+  "icone": "calendar",
+  "son": "gentle_reminder",
+  "vibration": [200, 100, 200],
+  "priorite": "haute",
+  "donnees": {
+    "documentId": "doc_001",
+    "action": "ouvrir_document",
+    "joursRestants": 3
+  },
+  "actions": [
+    { "id": "voir", "label": "Voir le document" },
+    { "id": "rappeler", "label": "Rappeler demain" }
+  ]
+}
+
+
+Type 2 : Nouveau document analysé
+Déclencheur : Après analyse réussie d'un scan
+
+{
+  "type": "document_analyse",
+  "titre": "📄 Document analysé",
+  "corps": "Votre facture Engie a été analysée avec succès",
+  "icone": "document",
+  "son": "success",
+  "vibration": [100],
+  "priorite": "normale",
+  "donnees": {
+    "documentId": "doc_001",
+    "action": "ouvrir_document"
+  }
+}
+
+
+Type 3 : Alerte urgence (pour senior)
+Déclencheur : Document avec urgence "rouge" détecté
+
+{
+  "type": "alerte_urgence",
+  "titre": "🔴 Courrier urgent !",
+  "corps": "Convocation médecin conseil - RDV le 10 janvier",
+  "icone": "alert",
+  "son": "urgent",
+  "vibration": [300, 100, 300, 100, 300],
+  "priorite": "critique",
+  "donnees": {
+    "documentId": "doc_002",
+    "action": "ouvrir_document"
+  }
+}
+
+
+Type 4 : Alerte pour aidant
+Déclencheur : Document urgent ou inactivité du senior
+
+{
+  "type": "alerte_aidant",
+  "titre": "👴 Alerte MonAdmin",
+  "corps": "Marie a reçu un courrier urgent : Convocation médecin conseil",
+  "icone": "family",
+  "son": "alert",
+  "vibration": [200, 100, 200],
+  "priorite": "haute",
+  "donnees": {
+    "seniorId": "user_001",
+    "documentId": "doc_002",
+    "action": "voir_document_senior"
+  },
+  "actions": [
+    { "id": "voir", "label": "Voir le document" },
+    { "id": "appeler", "label": "Appeler Marie" }
+  ]
+}
+
+
+Type 5 : Alerte inactivité
+Déclencheur : Senior n'a pas ouvert l'app depuis X jours
+
+{
+  "type": "alerte_inactivite",
+  "titre": "👴 MonAdmin",
+  "corps": "Marie n'a pas ouvert l'application depuis 7 jours",
+  "icone": "warning",
+  "son": "alert",
+  "priorite": "haute",
+  "donnees": {
+    "seniorId": "user_001",
+    "joursInactivite": 7,
+    "action": "contacter_senior"
+  },
+  "actions": [
+    { "id": "appeler", "label": "Appeler Marie" },
+    { "id": "ignorer", "label": "Ignorer" }
+  ]
+}
+
+
+4.2 LOGIQUE D'ENVOI DES NOTIFICATIONS
+-------------------------------------
+
+fonction envoyerNotification(notification, destinataire) {
+  
+  // Vérifier les préférences du destinataire
+  si destinataire.parametres.notificationsActives = faux :
+    retourner { succes: faux, raison: "notifications_desactivees" }
+  
+  // Vérifier les heures de silence (22h - 8h) sauf urgence critique
+  heure = obtenirHeureActuelle()
+  si heure >= 22 OU heure < 8 :
+    si notification.priorite != "critique" :
+      programmerPour(notification, 8, 0)  // Reporter à 8h
+      retourner { succes: vrai, reporte: vrai }
+  
+  // Envoyer via les canaux appropriés
+  canaux = determinerCanaux(notification, destinataire)
+  
+  resultats = []
+  pour chaque canal dans canaux :
+    selon canal :
+      cas "push":
+        resultat = envoyerPush(notification, destinataire.tokenPush)
+      cas "sms":
+        resultat = envoyerSMS(notification.corps, destinataire.telephone)
+      cas "email":
+        resultat = envoyerEmail(notification, destinataire.email)
+    
+    resultats.ajouter(resultat)
+  
+  retourner { succes: vrai, resultats: resultats }
+}
+
+fonction determinerCanaux(notification, destinataire) {
+  canaux = ["push"]  // Toujours push par défaut
+  
+  si notification.priorite = "critique" OU notification.priorite = "haute" :
+    si destinataire.telephone :
+      canaux.ajouter("sms")
+  
+  retourner canaux
+}
+
+
+4.3 CRON JOBS PLANIFIÉS
+-----------------------
+
+Job 1 : Vérification des rappels
+Fréquence : Toutes les heures
+```
+fonction verifierRappels() {
+  maintenant = obtenirDateHeureActuelle()
+  
+  rappels = obtenirRappels(où 
+    status = "programme" ET
+    dateRappel <= maintenant ET
+    dateRappel > maintenant - 1 heure
+  )
+  
+  pour chaque rappel dans rappels :
+    document = obtenirDocument(rappel.documentId)
+    utilisateur = obtenirUtilisateur(rappel.userId)
+    
+    notification = creerNotificationRappel(rappel, document)
+    envoyerNotification(notification, utilisateur)
+    
+    mettreAJourRappel(rappel.id, { status: "envoye" })
+}
+```
+
+Job 2 : Vérification des dates limites
+Fréquence : Tous les jours à 8h
+```
+fonction verifierDatesLimites() {
+  aujourdhui = obtenirDateAujourdhui()
+  
+  // Documents avec date limite dans les 7 prochains jours
+  documents = obtenirDocuments(où
+    status = "en_attente" ET
+    dateLimite >= aujourdhui ET
+    dateLimite <= aujourdhui + 7 jours
+  )
+  
+  pour chaque document dans documents :
+    joursRestants = calculerJoursRestants(document.dateLimite)
+    utilisateur = obtenirUtilisateur(document.userId)
+    
+    // Vérifier si on doit envoyer selon les préférences
+    si joursRestants dans utilisateur.parametres.rappelsJoursAvant :
+      notification = creerNotificationDateLimite(document, joursRestants)
+      envoyerNotification(notification, utilisateur)
+}
+```
+
+Job 3 : Vérification inactivité
+Fréquence : Tous les jours à 10h
+```
+fonction verifierInactivite() {
+  aujourdhui = obtenirDateAujourdhui()
+  
+  // Utilisateurs avec aidants qui surveillent l'inactivité
+  aidants = obtenirAidants(où alerteInactivite = vrai)
+  
+  pour chaque aidant dans aidants :
+    senior = obtenirUtilisateur(aidant.seniorId)
+    joursInactif = calculerJoursDepuis(senior.derniereConnexion)
+    
+    si joursInactif >= aidant.joursInactiviteAlerte :
+      notification = creerNotificationInactivite(senior, joursInactif)
+      envoyerNotification(notification, aidant)
+}
+```
+
+
+================================================================
+PARTIE 5 : STOCKAGE LOCAL ET MODE HORS-LIGNE
+================================================================
+
+5.1 STRUCTURE DU STOCKAGE LOCAL
+-------------------------------
+
+Clés de stockage :
+
+monadmin_utilisateur : Profil utilisateur complet
+monadmin_documents : Liste des 50 derniers documents (métadonnées)
+monadmin_images_cache : Cache des images (limité à 100MB)
+monadmin_rappels : Rappels programmés
+monadmin_aidants : Liste des aidants
+monadmin_parametres : Paramètres de l'app
+monadmin_file_attente : Actions en attente de synchronisation
+monadmin_derniere_sync : Date de dernière synchronisation
+
+
+5.2 LOGIQUE DE SYNCHRONISATION
+------------------------------
+
+fonction synchroniser() {
+  si !estConnecte() :
+    retourner { succes: faux, raison: "hors_ligne" }
+  
+  // 1. Envoyer les actions en attente
+  actionsEnAttente = obtenirStockage("monadmin_file_attente")
+  
+  pour chaque action dans actionsEnAttente :
+    resultat = executerActionEnLigne(action)
+    si resultat.succes :
+      supprimerActionEnAttente(action.id)
+  
+  // 2. Récupérer les mises à jour du serveur
+  dernièreSync = obtenirStockage("monadmin_derniere_sync")
+  
+  miseAJour = appelerAPI({
+    methode: "GET",
+    url: "/api/sync",
+    params: {
+      userId: utilisateur.id,
+      depuis: dernièreSync
+    }
+  })
+  
+  si miseAJour.succes :
+    // Mettre à jour les documents locaux
+    pour chaque doc dans miseAJour.documents :
+      mettreAJourDocumentLocal(doc)
+    
+    // Mettre à jour les rappels
+    pour chaque rappel dans miseAJour.rappels :
+      mettreAJourRappelLocal(rappel)
+    
+    // Mettre à jour la date de sync
+    sauvegarderStockage("monadmin_derniere_sync", maintenant())
+  
+  retourner { succes: vrai, elementsSync: miseAJour.total }
+}
+
+
+5.3 GESTION DES ACTIONS HORS-LIGNE
+----------------------------------
+
+fonction executerActionHorsLigne(action) {
+  // Sauvegarder localement d'abord
+  executerActionLocale(action)
+  
+  si estConnecte() :
+    // Essayer d'exécuter en ligne
+    resultat = executerActionEnLigne(action)
+    si !resultat.succes :
+      ajouterFileAttente(action)
+  sinon :
+    // Ajouter à la file d'attente
+    ajouterFileAttente(action)
+    afficherMessage("Action enregistrée. Elle sera synchronisée quand vous serez connecté.")
+}
+
+fonction ajouterFileAttente(action) {
+  fileAttente = obtenirStockage("monadmin_file_attente") ou []
+  
+  actionEnAttente = {
+    id: genererIdUnique(),
+    type: action.type,
+    donnees: action.donnees,
+    dateCreation: maintenant(),
+    tentatives: 0
+  }
+  
+  fileAttente.ajouter(actionEnAttente)
+  sauvegarderStockage("monadmin_file_attente", fileAttente)
+}
+
+
+5.4 CACHE DES IMAGES
+--------------------
+
+fonction obtenirImageDocument(documentId, imageUrl) {
+  // Vérifier le cache local
+  cleCache = "img_" + documentId
+  imageCache = obtenirCache(cleCache)
+  
+  si imageCache != null :
+    retourner imageCache
+  
+  // Télécharger si connecté
+  si estConnecte() :
+    image = telechargerImage(imageUrl)
+    
+    // Vérifier la taille du cache
+    tailleCache = calculerTailleCache()
+    si tailleCache > 100 * 1024 * 1024 :  // 100MB
+      nettoyerCacheAncien()
+    
+    sauvegarderCache(cleCache, image)
+    retourner image
+  
+  // Retourner placeholder si hors-ligne
+  retourner obtenirImagePlaceholder()
+}
+
+fonction nettoyerCacheAncien() {
+  // Supprimer les images les plus anciennes jusqu'à libérer 20MB
+  images = obtenirToutesImagesCache()
+  images = trierPar(images, "dateAcces", "asc")
+  
+  espaceLibere = 0
+  pour chaque image dans images :
+    si espaceLibere >= 20 * 1024 * 1024 :
+      sortir
+    supprimerCache(image.cle)
+    espaceLibere += image.taille
+}
+
+
+================================================================
+PARTIE 6 : ACCESSIBILITÉ AVANCÉE
+================================================================
+
+6.1 PARAMÈTRES DE TAILLE DE POLICE
+----------------------------------
+
+tailles = {
+  "normal": {
+    base: 18,
+    large: 22,
+    titre: 28,
+    hero: 32,
+    petit: 16
+  },
+  "grand": {
+    base: 22,
+    large: 26,
+    titre: 32,
+    hero: 38,
+    petit: 18
+  },
+  "tres_grand": {
+    base: 26,
+    large: 30,
+    titre: 38,
+    hero: 44,
+    petit: 22
+  }
+}
+
+fonction appliquerTaillePolice(taille) {
+  config = tailles[taille]
+  
+  definirVariableCSS("--font-base", config.base + "px")
+  definirVariableCSS("--font-large", config.large + "px")
+  definirVariableCSS("--font-titre", config.titre + "px")
+  definirVariableCSS("--font-hero", config.hero + "px")
+  definirVariableCSS("--font-petit", config.petit + "px")
+  
+  // Ajuster aussi la hauteur des boutons
+  hauteurBouton = config.large * 3.5
+  definirVariableCSS("--bouton-height", hauteurBouton + "px")
+}
+
+
+6.2 MODE CONTRASTE ÉLEVÉ
+------------------------
+
+themes = {
+  "normal": {
+    fond: "#F5F5F5",
+    surface: "#FFFFFF",
+    textePrimaire: "#1A237E",
+    texteSecondaire: "#5C6BC0",
+    bordure: "#E8EAF6"
+  },
+  "contraste_eleve": {
+    fond: "#000000",
+    surface: "#1A1A1A",
+    textePrimaire: "#FFFF00",
+    texteSecondaire: "#FFFFFF",
+    bordure: "#FFFF00"
+  }
+}
+
+
+6.3 RETOURS HAPTIQUES
+---------------------
+
+patterns = {
+  "tap": [50],                      // Tap simple
+  "succes": [100],                  // Action réussie
+  "erreur": [200, 100, 200],        // Erreur
+  "alerte": [200, 100, 200, 100, 200],  // Alerte importante
+  "notification": [100, 50, 100]    // Notification reçue
+}
+
+fonction vibrer(pattern) {
+  si !utilisateur.parametres.vibrationsActives :
+    retourner
+  
+  si typeof pattern = "string" :
+    pattern = patterns[pattern]
+  
+  si navigator.vibrate :
+    navigator.vibrate(pattern)
+}
+
+
+6.4 LABELS ACCESSIBLES
+----------------------
+
+Chaque élément interactif doit avoir :
+- aria-label : Description courte
+- aria-describedby : Description longue si nécessaire
+- role : Rôle sémantique
+- aria-live : Pour les mises à jour dynamiques
+
+Exemples :
+```
+Bouton Scanner :
+  aria-label="Scanner un courrier"
+  aria-describedby="desc-scanner"
+  role="button"
+
+Description :
+  id="desc-scanner"
+  "Ouvrir l'appareil photo pour prendre une photo de votre courrier"
+
+Zone de résultat :
+  aria-live="polite"
+  aria-atomic="true"
+  "Mise à jour quand un nouveau document est analysé"
+```
+
+
+6.5 NAVIGATION AU CLAVIER
+-------------------------
+
+Ordre de tabulation logique :
+1. En-tête (bouton retour si présent)
+2. Contenu principal (de haut en bas)
+3. Boutons d'action
+4. Navigation du bas
+
+Raccourcis clavier (si clavier connecté) :
+- Entrée : Activer le bouton focalisé
+- Échap : Revenir en arrière / Fermer modal
+- Tab : Élément suivant
+- Shift+Tab : Élément précédent
+- Flèches : Navigation dans les listes
+
+
+================================================================
+PARTIE 7 : ÉCRAN RÉGLAGES (NOUVEAU)
+================================================================
+
+7.1 STRUCTURE DE L'ÉCRAN RÉGLAGES
+---------------------------------
+
+Sections :
+
+1. MON PROFIL
+   - Photo/Avatar (modifiable)
+   - Prénom (modifiable)
+   - Nom (modifiable)
+   - Téléphone (modifiable)
+   - Adresse (modifiable)
+
+2. AFFICHAGE
+   - Taille du texte : Normal / Grand / Très grand
+   - Mode sombre : Oui / Non
+   - Contraste élevé : Oui / Non
+
+3. SON ET VOIX
+   - Volume de la voix : Curseur 0-100
+   - Vitesse de la voix : Lent / Normal / Rapide
+   - Vibrations : Oui / Non
+
+4. NOTIFICATIONS
+   - Activer les notifications : Oui / Non
+   - Rappels avant date limite : 1 jour / 3 jours / 7 jours
+   - Sons de notification : Oui / Non
+
+5. MA FAMILLE
+   - Liste des aidants
+   - Bouton "Ajouter un aidant"
+   - Pour chaque aidant : Modifier / Supprimer
+
+6. À PROPOS
+   - Version de l'application
+   - Politique de confidentialité
+   - Conditions d'utilisation
+   - Nous contacter
+
+7. MON COMPTE
+   - Exporter mes données
+   - Supprimer mon compte
+
+
+7.2 LOGIQUE DES RÉGLAGES
+------------------------
+
+fonction changerTaillePolice(nouvelleTaille) {
+  utilisateur.parametres.taillePolice = nouvelleTaille
+  appliquerTaillePolice(nouvelleTaille)
+  sauvegarderParametres()
+  afficherMessageTemporaire("✓ Taille du texte modifiée")
+}
+
+fonction changerVolumeVocal(volume) {
+  utilisateur.parametres.volumeVocal = volume
+  // Jouer un exemple pour tester
+  direTexte("Voici le nouveau volume", { volume: volume / 100 })
+  sauvegarderParametres()
+}
+
+fonction changerVitesseVocale(vitesse) {
+  vitesses = {
+    "lent": 0.7,
+    "normal": 0.85,
+    "rapide": 1.0
+  }
+  utilisateur.parametres.vitesseVocal = vitesses[vitesse]
+  direTexte("Voici la nouvelle vitesse", { vitesse: vitesses[vitesse] })
+  sauvegarderParametres()
+}
+
+fonction sauvegarderParametres() {
+  // Local
+  sauvegarderStockage("monadmin_parametres", utilisateur.parametres)
+  
+  // Serveur (si connecté)
+  si estConnecte() :
+    appelerAPI({
+      methode: "PUT",
+      url: "/api/users/" + utilisateur.id,
+      corps: { parametres: utilisateur.parametres }
+    })
+  sinon :
+    ajouterFileAttente({
+      type: "mise_a_jour_parametres",
+      donnees: utilisateur.parametres
+    })
+}
+
+
+================================================================
+FIN DU DOCUMENT - COUCHE 2 COMPLÈTE
+================================================================
+
+Ce document contient toutes les spécifications pour :
+✓ Structure de données complète
+✓ Logique de chaque écran
+✓ API backend détaillée
+✓ Système de notifications
+✓ Stockage local et mode hors-ligne
+✓ Accessibilité avancée
+✓ Écran réglages
+
+Prochaine étape : Implémenter ces spécifications dans Vibecodeapp
+en utilisant les prompts adaptés à la plateforme.

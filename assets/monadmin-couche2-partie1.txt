@@ -1,0 +1,1093 @@
+================================================================
+MONADMIN - COUCHE 2 : CONSTRUCTION COMPLÈTE
+================================================================
+Version: 2.0
+Date: Janvier 2026
+================================================================
+
+================================================================
+PARTIE 1 : STRUCTURE DE DONNÉES ET ÉTAT GLOBAL
+================================================================
+
+1.1 MODÈLE DE DONNÉES - UTILISATEUR
+-----------------------------------
+
+Utilisateur (User) :
+- id : identifiant unique (ex: "user_001")
+- prenom : texte (ex: "Marie")
+- nom : texte (ex: "Dupont")
+- avatar : emoji ou image (ex: "👴")
+- telephone : texte (ex: "+32 475 12 34 56")
+- email : texte optionnel
+- dateNaissance : date (pour personnaliser)
+- adresse : texte (pour pré-remplir courriers)
+- dateInscription : date
+- derniereConnexion : date/heure
+
+Paramètres utilisateur (UserSettings) :
+- taillePolice : "normal" | "grand" | "tres_grand"
+- volumeVocal : 0 à 100
+- vitesseVocal : 0.7 à 1.0 (lent pour seniors)
+- notificationsActives : oui/non
+- rappelsJoursAvant : liste [1, 3, 7]
+- modeSombre : oui/non
+- vibrationsActives : oui/non
+- langueVocale : "fr-FR" | "fr-BE"
+
+
+1.2 MODÈLE DE DONNÉES - DOCUMENT
+--------------------------------
+
+Document :
+- id : identifiant unique (ex: "doc_001")
+- userId : lien vers utilisateur
+- type : "facture" | "convocation" | "formulaire" | "attestation" | "information" | "relance" | "autre"
+- organisme : texte (ex: "Engie", "Mutualité Chrétienne")
+- titre : texte (ex: "Facture électricité décembre")
+- categorie : "sante" | "energie" | "pension" | "banque" | "impots" | "logement" | "autre"
+- urgence : "vert" | "orange" | "rouge"
+- urgenceLabel : "Pas urgent" | "Cette semaine" | "Urgent"
+- montant : nombre ou null (ex: 127.50)
+- montantFormate : texte (ex: "127,50 €")
+- dateLimite : date ou null
+- dateLimiteFormatee : texte (ex: "15 janvier 2026")
+- explication : texte (3 phrases max, langage simple)
+- action : texte (action concrète à faire)
+- status : "en_attente" | "en_cours" | "termine" | "archive"
+- imageUrl : lien vers image scannée
+- texteOCR : texte brut extrait
+- dateCreation : date/heure
+- dateModification : date/heure
+- rappels : liste de rappels associés
+
+
+1.3 MODÈLE DE DONNÉES - RAPPEL
+------------------------------
+
+Rappel (Reminder) :
+- id : identifiant unique
+- documentId : lien vers document
+- userId : lien vers utilisateur
+- dateRappel : date/heure
+- message : texte du rappel
+- type : "notification" | "sms" | "email"
+- status : "programme" | "envoye" | "annule"
+- dateCreation : date/heure
+
+
+1.4 MODÈLE DE DONNÉES - AIDANT
+------------------------------
+
+Aidant (FamilyHelper) :
+- id : identifiant unique
+- seniorId : lien vers utilisateur senior
+- prenom : texte
+- nom : texte
+- telephone : texte
+- email : texte
+- relation : "fils" | "fille" | "petit-fils" | "petite-fille" | "neveu" | "niece" | "ami" | "voisin" | "aide_soignant" | "autre"
+- permissions : liste ["voir_documents", "recevoir_alertes", "aider_repondre", "modifier_parametres"]
+- notificationsUrgentes : oui/non
+- alerteInactivite : oui/non (alerter si senior inactif)
+- joursInactiviteAlerte : nombre (ex: 7)
+- dateAjout : date
+
+
+1.5 ÉTAT GLOBAL DE L'APPLICATION
+--------------------------------
+
+État (AppState) :
+
+{
+  // Utilisateur connecté
+  utilisateur: {
+    id: "user_001",
+    prenom: "Marie",
+    nom: "Dupont",
+    avatar: "👴",
+    parametres: {
+      taillePolice: "grand",
+      volumeVocal: 80,
+      vitesseVocal: 0.85,
+      notificationsActives: true,
+      rappelsJoursAvant: [1, 3, 7],
+      vibrationsActives: true
+    }
+  },
+
+  // Navigation
+  pageActuelle: "accueil",
+  historiquePages: ["accueil"],
+  
+  // Documents
+  documents: [],
+  documentSelectionne: null,
+  categorieActive: "tous",
+  rechercheTexte: "",
+  triActif: "urgence_date",
+  
+  // Scanner
+  scannerEtat: "pret",
+  scannerErreur: null,
+  
+  // Vocal
+  vocalEtat: "idle",
+  vocalTranscription: "",
+  vocalReponse: "",
+  
+  // Lecture vocale
+  lectureActive: false,
+  lectureTexte: "",
+  
+  // Réseau
+  estConnecte: true,
+  derniereSync: "2026-01-07T10:30:00Z",
+  actionsEnAttente: [],
+  
+  // Interface
+  modalOuverte: null,
+  messageTemporaire: null,
+  chargementGlobal: false
+}
+
+
+================================================================
+PARTIE 2 : LOGIQUE ÉCRAN PAR ÉCRAN
+================================================================
+
+2.1 ÉCRAN ACCUEIL - LOGIQUE COMPLÈTE
+------------------------------------
+
+INITIALISATION :
+```
+fonction initialiserAccueil() {
+  // 1. Déterminer la salutation
+  heure = obtenirHeureActuelle()
+  si heure < 6 :
+    salutation = "Bonne nuit"
+  sinon si heure < 12 :
+    salutation = "Bonjour"
+  sinon si heure < 18 :
+    salutation = "Bon après-midi"
+  sinon :
+    salutation = "Bonsoir"
+  
+  // 2. Compter les documents urgents
+  documentsUrgents = filtrer(documents, où status = "en_attente" ET urgence != "vert")
+  nombreUrgents = compter(documentsUrgents)
+  nombreTresUrgents = compter(filtrer(documentsUrgents, où urgence = "rouge"))
+  
+  // 3. Vérifier les rappels du jour
+  rappelsDuJour = filtrer(rappels, où dateRappel = aujourd'hui)
+  
+  // 4. Afficher l'interface
+  afficherSalutation(salutation, utilisateur.prenom)
+  si nombreUrgents > 0 :
+    afficherAlerte(nombreUrgents, nombreTresUrgents)
+}
+```
+
+ACTIONS BOUTONS :
+```
+fonction clicScannerCourrier() {
+  vibrer(50)
+  jouerSon("clic_bouton")
+  naviguerVers("scanner")
+}
+
+fonction clicParlerMonAdmin() {
+  vibrer(50)
+  jouerSon("clic_bouton")
+  naviguerVers("vocal")
+}
+
+fonction clicMesDocuments() {
+  vibrer(50)
+  jouerSon("clic_bouton")
+  naviguerVers("documents")
+}
+
+fonction clicCommentCaMarche() {
+  vibrer(50)
+  ouvrirModal("tutoriel")
+}
+
+fonction clicAppelerAidant() {
+  vibrer(50)
+  aidants = obtenirAidants(utilisateur.id)
+  si compter(aidants) = 0 :
+    ouvrirModal("ajouter_aidant")
+  sinon si compter(aidants) = 1 :
+    lancerAppel(aidants[0].telephone)
+  sinon :
+    ouvrirModal("choisir_aidant", aidants)
+}
+
+fonction clicReglages() {
+  vibrer(50)
+  naviguerVers("reglages")
+}
+```
+
+
+2.2 ÉCRAN SCANNER - LOGIQUE COMPLÈTE
+------------------------------------
+
+ÉTATS DU SCANNER :
+```
+états = {
+  "pret": {
+    icone: "📄",
+    texte: "Placez votre courrier ici",
+    texteBouton: "Prendre la photo",
+    boutonActif: true
+  },
+  "demande_permission": {
+    icone: "📷",
+    texte: "MonAdmin a besoin d'accéder à votre appareil photo",
+    texteBouton: "Autoriser",
+    boutonActif: true
+  },
+  "capture": {
+    icone: "loader",
+    texte: "Photo prise !",
+    boutonActif: false
+  },
+  "analyse": {
+    icone: "loader_vert",
+    texte: "MonAdmin lit votre courrier...",
+    sousTitre: "Un instant s'il vous plaît",
+    boutonActif: false
+  },
+  "erreur": {
+    icone: "❌",
+    texte: "",  // Message d'erreur dynamique
+    texteBouton: "Réessayer",
+    boutonActif: true
+  }
+}
+```
+
+PROCESSUS DE SCAN :
+```
+fonction lancerScan() {
+  // Étape 1 : Vérifier permission caméra
+  permission = verifierPermissionCamera()
+  
+  si permission = "non_demandee" :
+    changerEtat("demande_permission")
+    resultat = demanderPermissionCamera()
+    si resultat = "refuse" :
+      changerEtat("erreur")
+      afficherErreur("Pour scanner vos courriers, j'ai besoin d'accéder à l'appareil photo. Vous pouvez l'autoriser dans les réglages.")
+      retourner
+  
+  si permission = "refuse" :
+    changerEtat("erreur")
+    afficherErreur("L'accès à l'appareil photo n'est pas autorisé. Voulez-vous ouvrir les réglages ?")
+    retourner
+  
+  // Étape 2 : Capturer l'image
+  essayer {
+    changerEtat("pret")
+    image = attendreCapture()  // Utilisateur prend la photo
+    
+    changerEtat("capture")
+    vibrer(100)
+    jouerSon("capture_photo")
+    attendre(1000)  // Pause pour feedback visuel
+    
+    // Étape 3 : Analyser l'image
+    changerEtat("analyse")
+    
+    resultat = envoyerPourAnalyse(image)
+    
+    si resultat.succes :
+      // Créer le document
+      nouveauDocument = resultat.document
+      ajouterDocument(nouveauDocument)
+      selectionnerDocument(nouveauDocument)
+      
+      vibrer(200)
+      jouerSon("succes")
+      naviguerVers("resultat")
+    sinon :
+      changerEtat("erreur")
+      afficherErreur(resultat.messageErreur)
+      
+  } attraper (erreur) {
+    changerEtat("erreur")
+    afficherErreur("Un problème est survenu. Réessayons ensemble.")
+  }
+}
+```
+
+APPEL API ANALYSE :
+```
+fonction envoyerPourAnalyse(image) {
+  // Préparer l'image
+  imageBase64 = convertirEnBase64(image)
+  imageCompressee = compresserImage(imageBase64, qualite: 80)
+  
+  // Appel API avec timeout
+  reponse = appelerAPI({
+    methode: "POST",
+    url: "/api/documents/analyze",
+    timeout: 30000,
+    corps: {
+      image: imageCompressee,
+      userId: utilisateur.id,
+      parametres: {
+        langue: "fr",
+        analyseDetaillee: true
+      }
+    }
+  })
+  
+  retourner reponse
+}
+```
+
+MESSAGES D'ERREUR PERSONNALISÉS :
+```
+messagesErreur = {
+  "image_floue": "La photo n'est pas assez nette. Essayez avec plus de lumière et tenez l'appareil bien stable.",
+  "pas_de_texte": "Je n'arrive pas à lire ce document. Vérifiez qu'il est bien visible et réessayez.",
+  "document_coupe": "Le document semble coupé. Assurez-vous qu'il est entièrement dans le cadre.",
+  "erreur_reseau": "Pas de connexion internet. Vérifiez votre connexion et réessayez.",
+  "erreur_serveur": "Un problème technique est survenu. Réessayez dans quelques instants.",
+  "timeout": "L'analyse prend plus de temps que prévu. Voulez-vous patienter ou réessayer ?",
+  "format_inconnu": "Je ne reconnais pas ce type de document. Voulez-vous quand même l'enregistrer ?"
+}
+```
+
+
+2.3 ÉCRAN RÉSULTAT - LOGIQUE COMPLÈTE
+-------------------------------------
+
+INITIALISATION :
+```
+fonction initialiserResultat() {
+  document = obtenirDocumentSelectionne()
+  
+  si document = null :
+    naviguerVers("accueil")
+    retourner
+  
+  // Préparer l'affichage
+  afficherBadgeUrgence(document.urgence, document.urgenceLabel)
+  afficherType(document.type)
+  afficherTitre(document.titre)
+  afficherOrganisme(document.organisme)
+  
+  si document.montant != null :
+    afficherMontant(document.montantFormate)
+  sinon :
+    cacherSectionMontant()
+  
+  si document.dateLimite != null :
+    afficherDateLimite(document.dateLimiteFormatee)
+    verifierProximiteDate(document.dateLimite)
+  sinon :
+    cacherSectionDate()
+  
+  afficherExplication(document.explication)
+  afficherAction(document.action)
+}
+
+fonction verifierProximiteDate(dateLimite) {
+  joursRestants = calculerJoursRestants(dateLimite)
+  
+  si joursRestants < 0 :
+    afficherAvertissement("⚠️ Cette date est dépassée !")
+  sinon si joursRestants = 0 :
+    afficherAvertissement("⚠️ C'est pour aujourd'hui !")
+  sinon si joursRestants <= 3 :
+    afficherAvertissement("⏰ Plus que " + joursRestants + " jours")
+}
+```
+
+LECTURE VOCALE :
+```
+variable lectureEnCours = faux
+
+fonction toggleLectureVocale() {
+  si lectureEnCours :
+    // Arrêter la lecture
+    arreterSyntheseVocale()
+    lectureEnCours = faux
+    changerIconeBouton("🔈")
+  sinon :
+    // Démarrer la lecture
+    document = obtenirDocumentSelectionne()
+    
+    texteALire = construireTexteVocal(document)
+    
+    configurerSyntheseVocale({
+      langue: "fr-FR",
+      vitesse: utilisateur.parametres.vitesseVocal,
+      volume: utilisateur.parametres.volumeVocal / 100
+    })
+    
+    lancerSyntheseVocale(texteALire, {
+      auDebut: fonction() {
+        lectureEnCours = vrai
+        changerIconeBouton("🔊")
+      },
+      aLaFin: fonction() {
+        lectureEnCours = faux
+        changerIconeBouton("🔈")
+      },
+      enCasDErreur: fonction() {
+        lectureEnCours = faux
+        changerIconeBouton("🔈")
+        afficherMessage("La lecture vocale n'est pas disponible")
+      }
+    })
+}
+
+fonction construireTexteVocal(document) {
+  texte = ""
+  
+  // Introduction
+  texte += "Voici votre " + document.type + " de " + document.organisme + ". "
+  
+  // Urgence
+  si document.urgence = "rouge" :
+    texte += "Attention, c'est urgent. "
+  sinon si document.urgence = "orange" :
+    texte += "C'est à faire cette semaine. "
+  
+  // Montant
+  si document.montant != null :
+    texte += "Le montant est de " + document.montantFormate + ". "
+  
+  // Date limite
+  si document.dateLimite != null :
+    texte += "Vous devez le faire avant le " + document.dateLimiteFormatee + ". "
+  
+  // Explication
+  texte += document.explication + " "
+  
+  // Action
+  texte += "Ce que vous devez faire : " + document.action
+  
+  retourner texte
+}
+```
+
+BOUTON "M'AIDER À RÉPONDRE" :
+```
+fonction clicAiderRepondre() {
+  vibrer(50)
+  
+  document = obtenirDocumentSelectionne()
+  
+  // Afficher les options
+  ouvrirModal("options_reponse", {
+    titre: "Comment voulez-vous répondre ?",
+    options: [
+      {
+        icone: "✉️",
+        label: "Écrire une lettre",
+        description: "Je prépare un courrier à envoyer par la poste",
+        action: "generer_lettre"
+      },
+      {
+        icone: "📧",
+        label: "Écrire un email",
+        description: "Je prépare un email à envoyer",
+        action: "generer_email"
+      },
+      {
+        icone: "📞",
+        label: "Appeler l'organisme",
+        description: "Je vous donne le numéro à appeler",
+        action: "afficher_telephone"
+      }
+    ]
+  })
+}
+
+fonction genererReponse(typeReponse) {
+  fermerModal()
+  afficherChargement("Je prépare votre " + typeReponse + "...")
+  
+  document = obtenirDocumentSelectionne()
+  
+  reponse = appelerAPI({
+    methode: "POST",
+    url: "/api/documents/" + document.id + "/generate-response",
+    corps: {
+      type: typeReponse,  // "lettre" ou "email"
+      userId: utilisateur.id,
+      infosUtilisateur: {
+        nom: utilisateur.nom,
+        prenom: utilisateur.prenom,
+        adresse: utilisateur.adresse
+      }
+    }
+  })
+  
+  masquerChargement()
+  
+  si reponse.succes :
+    ouvrirModal("reponse_generee", {
+      type: typeReponse,
+      destinataire: reponse.destinataire,
+      objet: reponse.objet,
+      corps: reponse.corps,
+      actions: [
+        { label: "📋 Copier", action: "copier" },
+        { label: "✏️ Modifier", action: "modifier" },
+        { label: "📤 Envoyer", action: "envoyer" }
+      ]
+    })
+  sinon :
+    afficherErreur("Je n'ai pas pu préparer la réponse. Voulez-vous réessayer ?")
+}
+```
+
+BOUTON "ME RAPPELER PLUS TARD" :
+```
+fonction clicRappelerPlusTard() {
+  vibrer(50)
+  
+  document = obtenirDocumentSelectionne()
+  
+  // Calculer les options de rappel
+  options = []
+  
+  // Option 1 : Demain matin
+  options.ajouter({
+    label: "Demain matin (9h)",
+    date: calculerDate(demain, 9, 0)
+  })
+  
+  // Option 2 : Dans 3 jours
+  options.ajouter({
+    label: "Dans 3 jours",
+    date: calculerDate(aujourdhui + 3 jours, 9, 0)
+  })
+  
+  // Option 3 : Avant la date limite (si applicable)
+  si document.dateLimite != null :
+    joursAvant = utilisateur.parametres.rappelsJoursAvant[0]  // Premier rappel
+    dateRappel = document.dateLimite - joursAvant jours
+    
+    si dateRappel > aujourdhui :
+      options.ajouter({
+        label: joursAvant + " jour(s) avant la date limite",
+        date: calculerDate(dateRappel, 9, 0)
+      })
+  
+  // Option 4 : Choisir une date
+  options.ajouter({
+    label: "Choisir une date",
+    action: "ouvrir_calendrier"
+  })
+  
+  ouvrirModal("choisir_rappel", {
+    titre: "Quand voulez-vous un rappel ?",
+    options: options
+  })
+}
+
+fonction creerRappel(dateRappel) {
+  fermerModal()
+  
+  document = obtenirDocumentSelectionne()
+  
+  rappel = {
+    documentId: document.id,
+    userId: utilisateur.id,
+    dateRappel: dateRappel,
+    message: "N'oubliez pas : " + document.titre,
+    type: "notification"
+  }
+  
+  reponse = appelerAPI({
+    methode: "POST",
+    url: "/api/reminders",
+    corps: rappel
+  })
+  
+  si reponse.succes :
+    vibrer(100)
+    jouerSon("succes")
+    afficherMessageTemporaire("✓ C'est noté ! Je vous rappellerai le " + formaterDate(dateRappel), 3000)
+  sinon :
+    afficherErreur("Je n'ai pas pu créer le rappel. Voulez-vous réessayer ?")
+}
+```
+
+BOUTON "ARCHIVER CE DOCUMENT" :
+```
+fonction clicArchiver() {
+  vibrer(50)
+  
+  document = obtenirDocumentSelectionne()
+  
+  // Demander confirmation si urgent
+  si document.urgence != "vert" ET document.status = "en_attente" :
+    ouvrirModal("confirmer_archivage", {
+      titre: "Êtes-vous sûr ?",
+      message: "Ce document n'est pas encore traité. Voulez-vous vraiment l'archiver ?",
+      boutons: [
+        { label: "Non, annuler", action: "fermer", style: "secondary" },
+        { label: "Oui, archiver", action: "confirmer_archivage", style: "primary" }
+      ]
+    })
+  sinon :
+    executerArchivage()
+}
+
+fonction executerArchivage() {
+  fermerModal()
+  
+  document = obtenirDocumentSelectionne()
+  
+  reponse = appelerAPI({
+    methode: "PUT",
+    url: "/api/documents/" + document.id,
+    corps: {
+      status: "archive"
+    }
+  })
+  
+  si reponse.succes :
+    // Mettre à jour localement
+    document.status = "archive"
+    mettreAJourDocument(document)
+    
+    vibrer(100)
+    jouerSon("succes")
+    afficherMessageTemporaire("✓ Document archivé", 1500)
+    
+    attendre(1500)
+    naviguerVers("documents")
+  sinon :
+    afficherErreur("Je n'ai pas pu archiver le document. Voulez-vous réessayer ?")
+}
+```
+
+
+2.4 ÉCRAN DOCUMENTS - LOGIQUE COMPLÈTE
+--------------------------------------
+
+INITIALISATION :
+```
+fonction initialiserDocuments() {
+  // Charger les documents
+  si estConnecte() :
+    synchroniserDocuments()
+  
+  documents = obtenirTousDocuments(utilisateur.id)
+  
+  // Calculer les compteurs par catégorie
+  compteurs = {
+    tous: compter(documents),
+    sante: compter(filtrer(documents, où categorie = "sante")),
+    energie: compter(filtrer(documents, où categorie = "energie")),
+    pension: compter(filtrer(documents, où categorie = "pension")),
+    banque: compter(filtrer(documents, où categorie = "banque")),
+    impots: compter(filtrer(documents, où categorie = "impots")),
+    logement: compter(filtrer(documents, où categorie = "logement")),
+    autre: compter(filtrer(documents, où categorie = "autre"))
+  }
+  
+  // Appliquer le tri par défaut
+  documentsTries = trierDocuments(documents, triActif)
+  
+  afficherDocuments(documentsTries)
+  afficherCompteurs(compteurs)
+}
+```
+
+RECHERCHE :
+```
+variable rechercheTimer = null
+
+fonction surChangementRecherche(texte) {
+  // Debounce : attendre 300ms après la dernière frappe
+  si rechercheTimer != null :
+    annulerTimer(rechercheTimer)
+  
+  rechercheTimer = programmerTimer(300, fonction() {
+    rechercheTexte = texte
+    appliquerFiltres()
+  })
+}
+
+fonction appliquerFiltres() {
+  documents = obtenirTousDocuments(utilisateur.id)
+  
+  // Filtre par catégorie
+  si categorieActive != "tous" :
+    documents = filtrer(documents, où categorie = categorieActive)
+  
+  // Filtre par recherche
+  si rechercheTexte != "" :
+    texteMinuscule = rechercheTexte.enMinuscules()
+    documents = filtrer(documents, où 
+      titre.enMinuscules().contient(texteMinuscule) OU
+      organisme.enMinuscules().contient(texteMinuscule) OU
+      type.enMinuscules().contient(texteMinuscule)
+    )
+  
+  // Appliquer le tri
+  documentsTries = trierDocuments(documents, triActif)
+  
+  afficherDocuments(documentsTries)
+}
+
+fonction trierDocuments(documents, typeTri) {
+  selon typeTri :
+    cas "urgence_date":
+      // Trier par urgence (rouge > orange > vert), puis par date
+      retourner trier(documents, par [
+        ordreUrgence(urgence) décroissant,
+        dateLimite croissant,
+        dateCreation décroissant
+      ])
+    
+    cas "date_recente":
+      retourner trier(documents, par dateCreation décroissant)
+    
+    cas "date_ancienne":
+      retourner trier(documents, par dateCreation croissant)
+    
+    cas "alphabetique":
+      retourner trier(documents, par titre croissant)
+  
+  retourner documents
+}
+
+fonction ordreUrgence(urgence) {
+  selon urgence :
+    cas "rouge": retourner 3
+    cas "orange": retourner 2
+    cas "vert": retourner 1
+  retourner 0
+}
+```
+
+RECHERCHE VOCALE :
+```
+fonction clicRecherchVocale() {
+  vibrer(50)
+  
+  afficherIndicateur("🎤 Je vous écoute...")
+  
+  demarrerReconnaissanceVocale({
+    langue: "fr-FR",
+    resultatIntermediaire: fonction(texte) {
+      mettreAJourChampRecherche(texte)
+    },
+    resultatFinal: fonction(texte) {
+      masquerIndicateur()
+      mettreAJourChampRecherche(texte)
+      rechercheTexte = texte
+      appliquerFiltres()
+    },
+    erreur: fonction(erreur) {
+      masquerIndicateur()
+      afficherMessage("Je n'ai pas compris. Pouvez-vous répéter ?")
+    },
+    timeout: 5000
+  })
+}
+```
+
+CLIC SUR CATÉGORIE :
+```
+fonction clicCategorie(categorie) {
+  vibrer(50)
+  
+  categorieActive = categorie
+  mettreAJourStyleCategories()
+  appliquerFiltres()
+}
+```
+
+CLIC SUR DOCUMENT :
+```
+fonction clicDocument(documentId) {
+  vibrer(50)
+  
+  document = trouverDocument(documentId)
+  selectionnerDocument(document)
+  naviguerVers("resultat")
+}
+```
+
+
+2.5 ÉCRAN VOCAL - LOGIQUE COMPLÈTE
+----------------------------------
+
+ÉTATS :
+```
+etatsVocal = {
+  "idle": {
+    avatar: "🤖",
+    avatarAnimation: "aucune",
+    avatarCouleur: "gradient(blanc, bleu_clair)",
+    titre: "Parler à MonAdmin",
+    description: "Appuyez sur le micro et posez votre question",
+    exemplesVisibles: vrai,
+    boutonIcone: "🎤",
+    boutonCouleur: "blanc",
+    boutonLabel: "Appuyez pour parler"
+  },
+  "listening": {
+    avatar: "👂",
+    avatarAnimation: "pulse",
+    avatarCouleur: "gradient(vert, vert_fonce)",
+    titre: "Je vous écoute...",
+    description: "",
+    exemplesVisibles: faux,
+    boutonIcone: "⏹",
+    boutonCouleur: "rouge",
+    boutonLabel: "Appuyez pour arrêter"
+  },
+  "processing": {
+    avatar: "🤔",
+    avatarAnimation: "pulse_lent",
+    avatarCouleur: "gradient(orange, orange_fonce)",
+    titre: "Je réfléchis...",
+    description: "",
+    exemplesVisibles: faux,
+    boutonIcone: "⏳",
+    boutonCouleur: "gris",
+    boutonLabel: "Un instant..."
+  },
+  "speaking": {
+    avatar: "🗣️",
+    avatarAnimation: "pulse",
+    avatarCouleur: "gradient(bleu, bleu_fonce)",
+    titre: "Voici ma réponse",
+    description: "",  // Affiche la réponse
+    exemplesVisibles: faux,
+    boutonIcone: "⏹",
+    boutonCouleur: "rouge",
+    boutonLabel: "Appuyez pour arrêter"
+  },
+  "error": {
+    avatar: "😕",
+    avatarAnimation: "aucune",
+    avatarCouleur: "gradient(gris, gris_fonce)",
+    titre: "Pardon ?",
+    description: "Je n'ai pas compris. Pouvez-vous répéter ?",
+    exemplesVisibles: vrai,
+    boutonIcone: "🎤",
+    boutonCouleur: "blanc",
+    boutonLabel: "Réessayer"
+  }
+}
+```
+
+LOGIQUE DU BOUTON MICRO :
+```
+fonction clicBoutonMicro() {
+  vibrer(50)
+  
+  selon vocalEtat :
+    cas "idle":
+    cas "error":
+      demarrerEcoute()
+    
+    cas "listening":
+      arreterEcoute()
+    
+    cas "processing":
+      // Ne rien faire, on attend
+      passer
+    
+    cas "speaking":
+      arreterLectureVocale()
+      changerEtat("idle")
+}
+
+fonction demarrerEcoute() {
+  changerEtat("listening")
+  
+  demarrerReconnaissanceVocale({
+    langue: "fr-FR",
+    resultatIntermediaire: fonction(texte) {
+      vocalTranscription = texte
+      afficherTranscription(texte)
+    },
+    resultatFinal: fonction(texte) {
+      vocalTranscription = texte
+      traiterCommande(texte)
+    },
+    silence: fonction() {
+      // Silence détecté après la parole
+      si vocalTranscription != "" :
+        traiterCommande(vocalTranscription)
+      sinon :
+        changerEtat("error")
+    },
+    erreur: fonction(erreur) {
+      changerEtat("error")
+    },
+    timeout: 10000
+  })
+}
+
+fonction arreterEcoute() {
+  arreterReconnaissanceVocale()
+  
+  si vocalTranscription != "" :
+    traiterCommande(vocalTranscription)
+  sinon :
+    changerEtat("idle")
+}
+```
+
+TRAITEMENT DES COMMANDES :
+```
+fonction traiterCommande(texte) {
+  changerEtat("processing")
+  
+  // Analyser la commande localement d'abord
+  commandeLocale = analyserCommandeLocale(texte)
+  
+  si commandeLocale != null :
+    executerCommande(commandeLocale)
+    retourner
+  
+  // Sinon, envoyer à l'API
+  reponse = appelerAPI({
+    methode: "POST",
+    url: "/api/voice/command",
+    corps: {
+      userId: utilisateur.id,
+      transcription: texte,
+      contexte: {
+        pageActuelle: "vocal",
+        nombreDocuments: compter(documents)
+      }
+    }
+  })
+  
+  si reponse.succes :
+    executerCommande(reponse)
+  sinon :
+    changerEtat("error")
+}
+
+fonction analyserCommandeLocale(texte) {
+  texteMinuscule = texte.enMinuscules()
+  
+  // Commande : Scanner
+  si texteMinuscule.contient("scanner") OU texteMinuscule.contient("scan") OU texteMinuscule.contient("photo") :
+    retourner {
+      intention: "navigation",
+      cible: "scanner",
+      reponse: "D'accord, je vous emmène au scanner."
+    }
+  
+  // Commande : Lire dernier courrier
+  si texteMinuscule.contient("lis") ET (texteMinuscule.contient("dernier") OU texteMinuscule.contient("récent")) :
+    dernierDoc = obtenirDernierDocument()
+    si dernierDoc != null :
+      retourner {
+        intention: "lire_document",
+        document: dernierDoc,
+        reponse: construireTexteVocal(dernierDoc)
+      }
+  
+  // Commande : Rechercher facture
+  si texteMinuscule.contient("où est") OU texteMinuscule.contient("trouve") OU texteMinuscule.contient("cherche") :
+    // Extraire le terme recherché
+    termeRecherche = extraireTermeRecherche(texteMinuscule)
+    documents = rechercherDocuments(termeRecherche)
+    
+    si compter(documents) > 0 :
+      retourner {
+        intention: "afficher_document",
+        document: documents[0],
+        reponse: "J'ai trouvé votre " + documents[0].type + " de " + documents[0].organisme + ". Je vous le montre."
+      }
+    sinon :
+      retourner {
+        intention: "reponse_simple",
+        reponse: "Je n'ai pas trouvé de document correspondant."
+      }
+  
+  // Commande : Que dois-je faire
+  si texteMinuscule.contient("dois") OU texteMinuscule.contient("faire") OU texteMinuscule.contient("attente") :
+    documentsUrgents = obtenirDocumentsEnAttente()
+    si compter(documentsUrgents) > 0 :
+      retourner {
+        intention: "lister_actions",
+        documents: documentsUrgents,
+        reponse: construireListeActions(documentsUrgents)
+      }
+    sinon :
+      retourner {
+        intention: "reponse_simple",
+        reponse: "Bonne nouvelle ! Vous n'avez rien d'urgent à faire."
+      }
+  
+  // Commande : Aide
+  si texteMinuscule.contient("aide") OU texteMinuscule.contient("comment") :
+    retourner {
+      intention: "aide",
+      reponse: "Je peux scanner vos courriers, vous les expliquer, et vous aider à répondre. Dites par exemple : scanner un courrier, ou lis-moi mon dernier courrier."
+    }
+  
+  // Commande non reconnue localement
+  retourner null
+}
+
+fonction executerCommande(commande) {
+  // Dire la réponse
+  changerEtat("speaking")
+  vocalReponse = commande.reponse
+  afficherReponse(vocalReponse)
+  
+  lancerSyntheseVocale(vocalReponse, {
+    aLaFin: fonction() {
+      // Exécuter l'action après la lecture
+      selon commande.intention :
+        cas "navigation":
+          attendre(500)
+          naviguerVers(commande.cible)
+        
+        cas "afficher_document":
+          attendre(500)
+          selectionnerDocument(commande.document)
+          naviguerVers("resultat")
+        
+        cas "lire_document":
+          // Déjà lu via la réponse
+          changerEtat("idle")
+        
+        cas "lister_actions":
+        cas "reponse_simple":
+        cas "aide":
+          changerEtat("idle")
+    }
+  })
+}
+
+fonction construireListeActions(documents) {
+  si compter(documents) = 1 :
+    doc = documents[0]
+    retourner "Vous avez une chose à faire : " + doc.action
+  
+  texte = "Vous avez " + compter(documents) + " choses à faire. "
+  
+  pour chaque doc dans documents (max 3) :
+    texte += doc.titre + " : " + doc.action + ". "
+  
+  si compter(documents) > 3 :
+    texte += "Et " + (compter(documents) - 3) + " autres."
+  
+  retourner texte
+}
+```
+
+Fin de la Partie 2.
