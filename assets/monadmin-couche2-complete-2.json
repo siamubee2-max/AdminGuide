@@ -1,0 +1,532 @@
+{
+  "application": {
+    "nom": "MonAdmin",
+    "version": "2.0",
+    "description": "Assistant administratif IA pour seniors - Couche 2 Complete"
+  },
+
+  "commandes_vocales": {
+    "scanner": {
+      "patterns": ["scanner", "scan", "photo", "photographier", "prendre une photo"],
+      "reponse": "D'accord, je vous emmene au scanner.",
+      "action": {"type": "navigation", "cible": "scanner"}
+    },
+    "lire_dernier": {
+      "patterns": ["lis", "lire", "dernier", "recent", "nouveau"],
+      "condition": "contient 'lis' ET (contient 'dernier' OU 'recent' OU 'nouveau')",
+      "reponse": "Construction dynamique du texte vocal du document",
+      "action": {"type": "lire_document", "cible": "dernier_document"}
+    },
+    "rechercher": {
+      "patterns": ["ou est", "trouve", "cherche", "trouver", "recherche"],
+      "reponse": "J'ai trouve votre {type} de {organisme}. Je vous le montre.",
+      "action": {"type": "afficher_document", "cible": "resultat_recherche"}
+    },
+    "actions_en_attente": {
+      "patterns": ["dois", "faire", "attente", "urgent", "cette semaine"],
+      "reponse": "Vous avez {count} choses a faire: {liste_actions}",
+      "action": {"type": "lister_actions"}
+    },
+    "aide": {
+      "patterns": ["aide", "comment", "quoi faire", "explique"],
+      "reponse": "Je peux scanner vos courriers, vous les expliquer, et vous aider a repondre. Dites par exemple: scanner un courrier, ou lis-moi mon dernier courrier.",
+      "action": {"type": "aide"}
+    },
+    "appeler_aidant": {
+      "patterns": ["appelle", "telephone", "fils", "fille", "famille"],
+      "reponse": "Je lance l'appel vers {nom_aidant}.",
+      "action": {"type": "appeler", "cible": "aidant"}
+    }
+  },
+
+  "api_endpoints": {
+    "documents": {
+      "analyser": {
+        "methode": "POST",
+        "url": "/api/documents/analyze",
+        "requete": {
+          "image": "base64_encoded_image",
+          "userId": "string",
+          "parametres": {
+            "langue": "fr",
+            "analyseDetaillee": true
+          }
+        },
+        "reponse_succes": {
+          "success": true,
+          "document": {
+            "id": "string",
+            "type": "string",
+            "organisme": "string",
+            "titre": "string",
+            "categorie": "string",
+            "urgence": "string",
+            "urgenceLabel": "string",
+            "montant": "number|null",
+            "montantFormate": "string",
+            "dateLimite": "date|null",
+            "dateLimiteFormatee": "string",
+            "explication": "string",
+            "action": "string",
+            "status": "en_attente",
+            "imageUrl": "string",
+            "texteOCR": "string",
+            "confiance": "number 0-1"
+          }
+        },
+        "codes_erreur": {
+          "IMAGE_FLOUE": "La photo n'est pas assez nette",
+          "PAS_DE_TEXTE": "Aucun texte detecte",
+          "DOCUMENT_COUPE": "Document partiellement visible",
+          "FORMAT_NON_SUPPORTE": "Format image non supporte",
+          "TAILLE_EXCESSIVE": "Image trop grande (max 10MB)"
+        }
+      },
+      "lister": {
+        "methode": "GET",
+        "url": "/api/documents",
+        "params": ["userId", "categorie", "status", "dateDebut", "dateFin", "tri", "ordre", "page", "limite"]
+      },
+      "obtenir": {
+        "methode": "GET",
+        "url": "/api/documents/{documentId}"
+      },
+      "modifier": {
+        "methode": "PUT",
+        "url": "/api/documents/{documentId}",
+        "requete": {"status": "string", "notes": "string"}
+      },
+      "supprimer": {
+        "methode": "DELETE",
+        "url": "/api/documents/{documentId}"
+      },
+      "generer_reponse": {
+        "methode": "POST",
+        "url": "/api/documents/{documentId}/generate-response",
+        "requete": {
+          "type": "lettre|email",
+          "userId": "string",
+          "infosUtilisateur": {
+            "prenom": "string",
+            "nom": "string",
+            "adresse": "string",
+            "telephone": "string"
+          }
+        },
+        "reponse": {
+          "destinataire": {"nom": "string", "adresse": "string", "email": "string"},
+          "objet": "string",
+          "corps": "string",
+          "signature": "string"
+        }
+      }
+    },
+    "rappels": {
+      "creer": {
+        "methode": "POST",
+        "url": "/api/reminders",
+        "requete": {
+          "documentId": "string",
+          "userId": "string",
+          "dateRappel": "datetime",
+          "message": "string",
+          "type": "notification|sms|email"
+        }
+      },
+      "lister": {
+        "methode": "GET",
+        "url": "/api/reminders",
+        "params": ["userId", "status", "dateDebut", "dateFin"]
+      },
+      "annuler": {
+        "methode": "DELETE",
+        "url": "/api/reminders/{reminderId}"
+      }
+    },
+    "vocal": {
+      "traiter_commande": {
+        "methode": "POST",
+        "url": "/api/voice/command",
+        "requete": {
+          "userId": "string",
+          "transcription": "string",
+          "contexte": {
+            "pageActuelle": "string",
+            "nombreDocuments": "number"
+          }
+        },
+        "reponse": {
+          "intention": "string",
+          "parametres": "object",
+          "action": {"type": "string", "cible": "string"},
+          "reponse": "string - texte a dire",
+          "parler": "boolean",
+          "confiance": "number 0-1"
+        }
+      }
+    },
+    "utilisateurs": {
+      "obtenir": {
+        "methode": "GET",
+        "url": "/api/users/{userId}"
+      },
+      "modifier": {
+        "methode": "PUT",
+        "url": "/api/users/{userId}",
+        "requete": {"parametres": "object"}
+      }
+    },
+    "famille": {
+      "inviter": {
+        "methode": "POST",
+        "url": "/api/family/invite",
+        "requete": {
+          "seniorId": "string",
+          "prenom": "string",
+          "nom": "string",
+          "email": "string",
+          "telephone": "string",
+          "relation": "string",
+          "permissions": "array",
+          "notificationsUrgentes": "boolean",
+          "alerteInactivite": "boolean",
+          "joursInactiviteAlerte": "number"
+        }
+      },
+      "lister_aidants": {
+        "methode": "GET",
+        "url": "/api/family/{seniorId}/helpers"
+      },
+      "retirer_aidant": {
+        "methode": "DELETE",
+        "url": "/api/family/helpers/{helperId}"
+      },
+      "envoyer_alerte": {
+        "methode": "POST",
+        "url": "/api/family/alert",
+        "requete": {
+          "seniorId": "string",
+          "type": "document_urgent|inactivite",
+          "documentId": "string|null",
+          "message": "string",
+          "priorite": "normale|haute|critique"
+        }
+      }
+    },
+    "synchronisation": {
+      "sync": {
+        "methode": "GET",
+        "url": "/api/sync",
+        "params": ["userId", "depuis"],
+        "reponse": {
+          "documents": "array - documents modifies",
+          "rappels": "array - rappels modifies",
+          "parametres": "object - si modifies",
+          "total": "number"
+        }
+      }
+    }
+  },
+
+  "notifications": {
+    "types": {
+      "rappel_date_limite": {
+        "declencheur": "Cron job quotidien a 8h",
+        "timing": "J-7, J-3, J-1, J-0",
+        "template": {
+          "titre": "📅 Rappel MonAdmin",
+          "corps": "N'oubliez pas : {titre} ({montant}) a faire avant le {dateLimite}",
+          "son": "gentle_reminder",
+          "vibration": [200, 100, 200],
+          "priorite": "haute",
+          "actions": [
+            {"id": "voir", "label": "Voir le document"},
+            {"id": "rappeler", "label": "Rappeler demain"}
+          ]
+        }
+      },
+      "document_analyse": {
+        "declencheur": "Apres analyse reussie",
+        "template": {
+          "titre": "📄 Document analyse",
+          "corps": "Votre {type} de {organisme} a ete analyse avec succes",
+          "son": "success",
+          "vibration": [100],
+          "priorite": "normale"
+        }
+      },
+      "alerte_urgence": {
+        "declencheur": "Document avec urgence rouge detecte",
+        "template": {
+          "titre": "🔴 Courrier urgent !",
+          "corps": "{titre} - {action}",
+          "son": "urgent",
+          "vibration": [300, 100, 300, 100, 300],
+          "priorite": "critique"
+        }
+      },
+      "alerte_aidant": {
+        "declencheur": "Document urgent ou inactivite senior",
+        "template": {
+          "titre": "👴 Alerte MonAdmin",
+          "corps": "{prenomSenior} a recu un courrier urgent : {titre}",
+          "son": "alert",
+          "vibration": [200, 100, 200],
+          "priorite": "haute",
+          "actions": [
+            {"id": "voir", "label": "Voir le document"},
+            {"id": "appeler", "label": "Appeler {prenomSenior}"}
+          ]
+        }
+      },
+      "alerte_inactivite": {
+        "declencheur": "Senior inactif depuis X jours",
+        "template": {
+          "titre": "👴 MonAdmin",
+          "corps": "{prenomSenior} n'a pas ouvert l'application depuis {jours} jours",
+          "son": "alert",
+          "priorite": "haute",
+          "actions": [
+            {"id": "appeler", "label": "Appeler {prenomSenior}"},
+            {"id": "ignorer", "label": "Ignorer"}
+          ]
+        }
+      }
+    },
+    "regles_envoi": {
+      "heures_silence": {"debut": 22, "fin": 8, "exception": "priorite critique"},
+      "canaux": {
+        "defaut": ["push"],
+        "priorite_haute_critique": ["push", "sms"]
+      }
+    },
+    "cron_jobs": {
+      "verifier_rappels": {"frequence": "toutes les heures"},
+      "verifier_dates_limites": {"frequence": "tous les jours a 8h"},
+      "verifier_inactivite": {"frequence": "tous les jours a 10h"}
+    }
+  },
+
+  "stockage_local": {
+    "cles": {
+      "monadmin_utilisateur": "Profil utilisateur complet",
+      "monadmin_documents": "50 derniers documents (metadonnees)",
+      "monadmin_images_cache": "Cache images (limite 100MB)",
+      "monadmin_rappels": "Rappels programmes",
+      "monadmin_aidants": "Liste des aidants",
+      "monadmin_parametres": "Parametres app",
+      "monadmin_file_attente": "Actions en attente de sync",
+      "monadmin_derniere_sync": "Date derniere synchronisation"
+    },
+    "synchronisation": {
+      "declencheurs": [
+        "Au demarrage de l'app",
+        "Toutes les 15 minutes si connecte",
+        "A chaque action importante",
+        "Manuellement via bouton refresh"
+      ],
+      "processus": [
+        "1. Envoyer actions en attente",
+        "2. Recuperer mises a jour serveur",
+        "3. Mettre a jour stockage local",
+        "4. Mettre a jour date sync"
+      ]
+    },
+    "mode_hors_ligne": {
+      "actions_possibles": [
+        "Consulter documents en cache",
+        "Creer rappels (mis en file attente)",
+        "Modifier status documents (mis en file attente)"
+      ],
+      "actions_impossibles": [
+        "Scanner nouveaux documents",
+        "Generer reponses IA"
+      ],
+      "indicateur": "Afficher bandeau 'Mode hors-ligne' en haut"
+    },
+    "cache_images": {
+      "limite": "100MB",
+      "strategie_nettoyage": "Supprimer images les plus anciennes jusqu'a liberer 20MB",
+      "placeholder": "Image generique si hors-ligne"
+    }
+  },
+
+  "accessibilite": {
+    "tailles_police": {
+      "normal": {"base": 18, "large": 22, "titre": 28, "hero": 32, "petit": 16},
+      "grand": {"base": 22, "large": 26, "titre": 32, "hero": 38, "petit": 18},
+      "tres_grand": {"base": 26, "large": 30, "titre": 38, "hero": 44, "petit": 22}
+    },
+    "themes": {
+      "normal": {
+        "fond": "#F5F5F5",
+        "surface": "#FFFFFF",
+        "textePrimaire": "#1A237E",
+        "texteSecondaire": "#5C6BC0",
+        "bordure": "#E8EAF6"
+      },
+      "contraste_eleve": {
+        "fond": "#000000",
+        "surface": "#1A1A1A",
+        "textePrimaire": "#FFFF00",
+        "texteSecondaire": "#FFFFFF",
+        "bordure": "#FFFF00"
+      }
+    },
+    "retours_haptiques": {
+      "tap": [50],
+      "succes": [100],
+      "erreur": [200, 100, 200],
+      "alerte": [200, 100, 200, 100, 200],
+      "notification": [100, 50, 100]
+    },
+    "aria_labels": {
+      "obligatoire": "Chaque element interactif doit avoir aria-label",
+      "descriptions": "aria-describedby pour descriptions longues",
+      "roles": "role semantique approprie",
+      "live_regions": "aria-live pour mises a jour dynamiques"
+    },
+    "navigation_clavier": {
+      "ordre_tabulation": ["En-tete", "Contenu principal", "Boutons action", "Navigation bas"],
+      "raccourcis": {
+        "Entree": "Activer bouton focalise",
+        "Echap": "Revenir en arriere / Fermer modal",
+        "Tab": "Element suivant",
+        "Shift+Tab": "Element precedent"
+      }
+    }
+  },
+
+  "ecran_reglages": {
+    "sections": {
+      "mon_profil": {
+        "champs": [
+          {"id": "avatar", "label": "Photo", "type": "image_picker"},
+          {"id": "prenom", "label": "Prenom", "type": "text"},
+          {"id": "nom", "label": "Nom", "type": "text"},
+          {"id": "telephone", "label": "Telephone", "type": "tel"},
+          {"id": "adresse", "label": "Adresse", "type": "textarea"}
+        ]
+      },
+      "affichage": {
+        "champs": [
+          {"id": "taillePolice", "label": "Taille du texte", "type": "select", "options": ["Normal", "Grand", "Tres grand"]},
+          {"id": "modeSombre", "label": "Mode sombre", "type": "toggle"},
+          {"id": "contrasteEleve", "label": "Contraste eleve", "type": "toggle"}
+        ]
+      },
+      "son_et_voix": {
+        "champs": [
+          {"id": "volumeVocal", "label": "Volume de la voix", "type": "slider", "min": 0, "max": 100},
+          {"id": "vitesseVocal", "label": "Vitesse de la voix", "type": "select", "options": ["Lent", "Normal", "Rapide"]},
+          {"id": "vibrationsActives", "label": "Vibrations", "type": "toggle"}
+        ]
+      },
+      "notifications": {
+        "champs": [
+          {"id": "notificationsActives", "label": "Activer les notifications", "type": "toggle"},
+          {"id": "rappelsJoursAvant", "label": "Rappels avant date limite", "type": "multi_select", "options": ["1 jour", "3 jours", "7 jours"]},
+          {"id": "sonsNotification", "label": "Sons de notification", "type": "toggle"}
+        ]
+      },
+      "ma_famille": {
+        "affichage": "Liste des aidants avec boutons Modifier/Supprimer",
+        "actions": ["Ajouter un aidant"]
+      },
+      "a_propos": {
+        "elements": [
+          {"label": "Version", "valeur": "2.0.0"},
+          {"label": "Politique de confidentialite", "action": "ouvrir_lien"},
+          {"label": "Conditions d'utilisation", "action": "ouvrir_lien"},
+          {"label": "Nous contacter", "action": "ouvrir_email"}
+        ]
+      },
+      "mon_compte": {
+        "actions": [
+          {"label": "Exporter mes donnees", "style": "secondary"},
+          {"label": "Supprimer mon compte", "style": "danger", "confirmation": true}
+        ]
+      }
+    }
+  },
+
+  "flux_utilisateur": {
+    "premier_lancement": [
+      "1. Ecran de bienvenue avec explication simple",
+      "2. Demande prenom",
+      "3. Demande permission camera",
+      "4. Demande permission notifications",
+      "5. Tutoriel interactif (3 etapes max)",
+      "6. Proposition ajouter aidant",
+      "7. Ecran accueil"
+    ],
+    "scan_document": [
+      "1. Clic bouton Scanner",
+      "2. Verification permission camera",
+      "3. Affichage zone camera avec guidage",
+      "4. Capture photo",
+      "5. Feedback visuel + sonore",
+      "6. Animation analyse",
+      "7. Affichage resultat",
+      "8. Options: Aider a repondre / Rappeler / Archiver"
+    ],
+    "consultation_documents": [
+      "1. Clic bouton Mes documents",
+      "2. Affichage liste triee par urgence",
+      "3. Filtrage par categorie (optionnel)",
+      "4. Recherche texte ou vocale (optionnel)",
+      "5. Selection document",
+      "6. Affichage details"
+    ],
+    "ajout_aidant": [
+      "1. Reglages > Ma famille > Ajouter",
+      "2. Saisie infos aidant",
+      "3. Selection permissions",
+      "4. Envoi invitation (email + SMS)",
+      "5. Aidant accepte invitation",
+      "6. Confirmation ajout"
+    ]
+  },
+
+  "prompts_ia": {
+    "analyse_document": {
+      "system": "Tu es MonAdmin, un assistant administratif bienveillant pour seniors. Tu analyses des documents administratifs et les expliques simplement.",
+      "instruction": "Analyse ce document et reponds en JSON avec: type, organisme, titre, categorie, urgence (vert/orange/rouge), montant, dateLimite, explication (3 phrases max en langage simple), action (ce que la personne doit faire concretement).",
+      "regles": [
+        "Parle simplement, comme a un ami",
+        "Maximum 3 phrases pour expliquer",
+        "Utilise des mots du quotidien (pas de jargon)",
+        "Sois rassurant, jamais alarmiste",
+        "Indique toujours l'action concrete a faire"
+      ]
+    },
+    "generation_lettre": {
+      "system": "Tu es MonAdmin. Tu aides a rediger des courriers administratifs clairs et polis.",
+      "instruction": "Redige une lettre de reponse pour ce document. Utilise un ton formel mais accessible. Inclus les references du document original."
+    },
+    "commande_vocale": {
+      "system": "Tu es MonAdmin. Tu comprends les demandes vocales des seniors et determines l'action appropriee.",
+      "instruction": "Analyse cette transcription vocale et determine l'intention parmi: scanner, lire_document, rechercher, lister_actions, aide, appeler, salutation. Reponds en JSON avec intention, parametres, reponse (texte a dire), action."
+    }
+  },
+
+  "tests_validation": {
+    "accessibilite": [
+      "Contraste minimum 7:1 sur tous les textes",
+      "Taille minimum touch target 60px",
+      "Tous les elements ont aria-label",
+      "Navigation possible au clavier seul"
+    ],
+    "performance": [
+      "Temps chargement initial < 3 secondes",
+      "Temps analyse document < 10 secondes",
+      "Transitions fluides (60fps)"
+    ],
+    "utilisabilite_senior": [
+      "Test avec 5+ seniors de 65+ ans",
+      "Taux de succes scan > 90%",
+      "Comprehension explication > 95%",
+      "Satisfaction globale > 4/5"
+    ]
+  }
+}
