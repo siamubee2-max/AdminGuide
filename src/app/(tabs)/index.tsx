@@ -65,7 +65,7 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 56 }}>👴</Text>
             </LinearGradient>
             <Text
-              className="text-3xl text-text-primary mt-4"
+              className="text-2xl text-text-primary mt-4"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
               {greeting} {userName} !
