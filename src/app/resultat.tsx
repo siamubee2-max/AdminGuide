@@ -1,40 +1,111 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { 
+  ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen, 
+  Calendar, Wallet, CheckCircle2, X, Copy, Bell, BellOff, Trash2, Share2, Users 
+} from 'lucide-react-native';
+import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useDocumentStore } from '@/lib/state/document-store';
+import { useSettingsStore, getVoiceRate } from '@/lib/state/settings-store';
+import { useHistoryStore } from '@/lib/state/history-store';
+import { generateResponseWithAI } from '@/lib/services/ai-service';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 import { URGENCE_STYLES } from '@/lib/types';
+import { ScheduledReminder } from '@/lib/services/notification-service';
+import { ShareDocumentModal } from '@/components/ShareDocumentModal';
+import { useFamilyStore } from '@/lib/state/family-store';
 
 export default function ResultatScreen() {
   const router = useRouter();
   const currentDocument = useDocumentStore((s) => s.currentDocument);
   const archiveDocument = useDocumentStore((s) => s.archiveDocument);
+  const profile = useSettingsStore((s) => s.profile);
+  const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
+  const rappelsJoursAvant = useSettingsStore((s) => s.rappelsJoursAvant);
+  
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [generatedResponse, setGeneratedResponse] = useState<{
+    objet: string;
+    corps: string;
+    signature: string;
+  } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedReminderOption, setSelectedReminderOption] = useState<string>('');
+  const [documentReminders, setDocumentReminders] = useState<ScheduledReminder[]>([]);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  
+  const familyMembers = useFamilyStore((s) => s.members);
+  const documentShares = useFamilyStore((s) => s.getDocumentShares);
+  const loadFamily = useFamilyStore((s) => s.loadFamily);
+
+  const { 
+    isEnabled: notificationsEnabled,
+    requestPermission,
+    scheduleReminder,
+    scheduleAutomaticReminders,
+    cancelReminder,
+    getDocumentReminders,
+  } = useNotifications();
+
+  const addAction = useHistoryStore((s) => s.addAction);
+
+  // Load existing reminders, family, and track view
+  useEffect(() => {
+    loadFamily();
+  }, []);
+
+  useEffect(() => {
+    if (currentDocument) {
+      getDocumentReminders(currentDocument.id).then(setDocumentReminders);
+      
+      // Track document view
+      addAction({
+        type: 'view',
+        title: `Document consulté`,
+        documentId: String(currentDocument.id),
+        documentTitle: currentDocument.titre,
+      });
+    }
+  }, [currentDocument?.id]);
 
   if (!currentDocument) {
     return (
-      <View className="flex-1 bg-background items-center justify-center">
-        <Text style={{ fontSize: 64, marginBottom: 16 }}>📄</Text>
-        <Text
-          className="text-xl text-text-primary"
-          style={{ fontFamily: 'Nunito_600SemiBold' }}
+      <View className="flex-1 bg-background items-center justify-center px-8">
+        <Animated.View 
+          entering={FadeIn.duration(500)}
+          className="items-center"
         >
-          Aucun document sélectionné
-        </Text>
-        <Pressable
-          onPress={() => router.back()}
-          className="mt-6 bg-primary rounded-2xl px-8 py-4"
-        >
-          <Text
-            className="text-white text-lg"
-            style={{ fontFamily: 'Nunito_600SemiBold' }}
+          <View 
+            className="w-28 h-28 rounded-full items-center justify-center mb-6"
+            style={{ backgroundColor: '#F3F4F6' }}
           >
-            Retour
+            <Text style={{ fontSize: 56 }}>📄</Text>
+          </View>
+          <Text
+            className="text-2xl text-text-primary text-center mb-3"
+            style={{ fontFamily: 'Nunito_700Bold' }}
+          >
+            Aucun document sélectionné
           </Text>
-        </Pressable>
+          <Pressable
+            onPress={() => router.back()}
+            className="rounded-2xl px-10 py-4 active:scale-95 mt-4"
+            style={{ backgroundColor: '#2563EB' }}
+          >
+            <Text className="text-white text-lg" style={{ fontFamily: 'Nunito_700Bold' }}>
+              Retour
+            </Text>
+          </Pressable>
+        </Animated.View>
       </View>
     );
   }
@@ -42,6 +113,8 @@ export default function ResultatScreen() {
   const urgenceStyle = URGENCE_STYLES[currentDocument.urgence];
 
   const handleReadAloud = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     if (isSpeaking) {
       Speech.stop();
       setIsSpeaking(false);
@@ -50,7 +123,7 @@ export default function ResultatScreen() {
       const textToRead = `${currentDocument.titre}. ${currentDocument.explication}. Ce que vous devez faire: ${currentDocument.action}`;
       Speech.speak(textToRead, {
         language: 'fr-FR',
-        rate: 0.85,
+        rate: getVoiceRate(vitesseVocale),
         onDone: () => setIsSpeaking(false),
         onStopped: () => setIsSpeaking(false),
       });
@@ -58,20 +131,151 @@ export default function ResultatScreen() {
   };
 
   const handleArchive = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Track archive action
+    addAction({
+      type: 'archived',
+      title: `Document archivé`,
+      documentId: String(currentDocument.id),
+      documentTitle: currentDocument.titre,
+    });
+    
     archiveDocument(currentDocument.id);
     router.replace('/(tabs)/documents');
   };
 
-  const handleSetReminder = () => {
-    Alert.alert(
-      'Rappel créé',
-      'Vous serez rappelé pour ce document.',
-      [{ text: 'OK' }]
-    );
+  const handleGenerateResponse = async () => {
+    setShowResponseModal(true);
+    setIsGenerating(true);
+    
+    try {
+      const response = await generateResponseWithAI(currentDocument, {
+        prenom: profile.prenom,
+        nom: profile.nom,
+        adresse: profile.adresse,
+      });
+      setGeneratedResponse(response);
+      
+      // Track response generation
+      addAction({
+        type: 'note_added',
+        title: `Réponse générée`,
+        description: `Aide à la rédaction pour ${currentDocument.organisme}`,
+        documentId: String(currentDocument.id),
+        documentTitle: currentDocument.titre,
+      });
+    } catch (error) {
+      console.error('Error generating response:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyResponse = async () => {
+    if (generatedResponse) {
+      const fullText = `Objet : ${generatedResponse.objet}\n\n${generatedResponse.corps}\n\n${generatedResponse.signature}`;
+      await Clipboard.setStringAsync(fullText);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleOpenReminderModal = async () => {
+    // Check/request permission first
+    if (!notificationsEnabled) {
+      const granted = await requestPermission();
+      if (!granted) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+    }
+    setShowReminderModal(true);
+  };
+
+  const handleSetReminder = async () => {
+    if (!selectedReminderOption) return;
+    
+    setIsScheduling(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      let reminderDate = new Date();
+      
+      switch (selectedReminderOption) {
+        case 'demain':
+          reminderDate.setDate(reminderDate.getDate() + 1);
+          reminderDate.setHours(9, 0, 0, 0);
+          break;
+        case '3jours':
+          reminderDate.setDate(reminderDate.getDate() + 3);
+          reminderDate.setHours(9, 0, 0, 0);
+          break;
+        case 'semaine':
+          reminderDate.setDate(reminderDate.getDate() + 7);
+          reminderDate.setHours(9, 0, 0, 0);
+          break;
+        case 'auto':
+          // Schedule automatic reminders based on deadline
+          await scheduleAutomaticReminders(currentDocument, rappelsJoursAvant);
+          break;
+      }
+
+      if (selectedReminderOption !== 'auto') {
+        await scheduleReminder(currentDocument, reminderDate, 'custom');
+      }
+
+      // Refresh reminders list
+      const updated = await getDocumentReminders(currentDocument.id);
+      setDocumentReminders(updated);
+
+      // Track reminder creation
+      addAction({
+        type: 'reminder_set',
+        title: `Rappel programmé`,
+        description: selectedReminderOption === 'auto' 
+          ? 'Rappels automatiques activés' 
+          : `Rappel ${selectedReminderOption === 'demain' ? 'demain' : selectedReminderOption === '3jours' ? 'dans 3 jours' : 'dans une semaine'}`,
+        documentId: String(currentDocument.id),
+        documentTitle: currentDocument.titre,
+      });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowReminderModal(false);
+      setSelectedReminderOption('');
+    } catch (error) {
+      console.error('Error setting reminder:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const handleCancelReminder = async (notificationId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await cancelReminder(notificationId);
+    const updated = await getDocumentReminders(currentDocument.id);
+    setDocumentReminders(updated);
+  };
+
+  const formatReminderDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    return date.toLocaleDateString('fr-FR', options);
   };
 
   return (
     <View className="flex-1 bg-background">
+      <LinearGradient
+        colors={urgenceStyle.gradient}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 280 }}
+      />
+      
       <SafeAreaView className="flex-1" edges={['top']}>
         {/* Header */}
         <Animated.View
@@ -80,24 +284,33 @@ export default function ResultatScreen() {
         >
           <Pressable
             onPress={() => router.back()}
-            className="flex-row items-center"
+            className="flex-row items-center active:opacity-70"
           >
-            <ChevronLeft size={28} color="#1A237E" />
+            <View 
+              className="w-10 h-10 rounded-full items-center justify-center mr-2"
+              style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
+            >
+              <ChevronLeft size={24} color={urgenceStyle.text} />
+            </View>
             <Text
-              className="text-text-primary text-lg ml-1"
-              style={{ fontFamily: 'Nunito_600SemiBold' }}
+              className="text-lg"
+              style={{ fontFamily: 'Nunito_600SemiBold', color: urgenceStyle.text }}
             >
               Retour
             </Text>
           </Pressable>
+          
           <Pressable
             onPress={handleReadAloud}
-            className="w-14 h-14 bg-primary/10 rounded-2xl items-center justify-center"
+            className="w-14 h-14 rounded-2xl items-center justify-center active:scale-95"
+            style={{ 
+              backgroundColor: isSpeaking ? urgenceStyle.border : 'rgba(255,255,255,0.9)',
+            }}
           >
             {isSpeaking ? (
-              <VolumeX size={28} color="#1565C0" />
+              <VolumeX size={26} color="white" />
             ) : (
-              <Volume2 size={28} color="#1565C0" />
+              <Volume2 size={26} color={urgenceStyle.text} />
             )}
           </Pressable>
         </Animated.View>
@@ -107,228 +320,393 @@ export default function ResultatScreen() {
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Document Card */}
+          {/* Badge d'urgence */}
           <Animated.View
             entering={FadeInUp.duration(400).delay(100)}
-            className="bg-white rounded-3xl p-6 mb-6"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.08,
-              shadowRadius: 12,
-              elevation: 4,
-            }}
+            className="items-center mb-4"
           >
-            {/* Badges */}
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="bg-gray-100 rounded-xl px-4 py-2">
-                <Text
-                  className="text-text-secondary text-base"
-                  style={{ fontFamily: 'Nunito_600SemiBold' }}
-                >
-                  {currentDocument.type}
-                </Text>
-              </View>
-              <View
-                className="rounded-xl px-4 py-2 flex-row items-center"
-                style={{
-                  backgroundColor: urgenceStyle.background,
-                  borderWidth: 2,
-                  borderColor: urgenceStyle.border,
-                }}
+            <View
+              className="rounded-full px-6 py-3 flex-row items-center"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                borderWidth: 3,
+                borderColor: urgenceStyle.border,
+              }}
+            >
+              <Text style={{ fontSize: 22 }}>{urgenceStyle.icon}</Text>
+              <Text
+                className="ml-2"
+                style={{ fontFamily: 'Nunito_800ExtraBold', fontSize: 18, color: urgenceStyle.text }}
               >
-                <Text style={{ marginRight: 6 }}>{urgenceStyle.icon}</Text>
-                <Text
-                  style={{
-                    fontFamily: 'Nunito_700Bold',
-                    fontSize: 16,
-                    color: urgenceStyle.text,
-                  }}
-                >
-                  {urgenceStyle.label}
+                {urgenceStyle.label}
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Scheduled reminders indicator */}
+          {documentReminders.length > 0 && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              className="mb-4"
+            >
+              <View
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: '#EFF6FF', borderWidth: 2, borderColor: '#BFDBFE' }}
+              >
+                <View className="flex-row items-center mb-2">
+                  <Bell size={18} color="#2563EB" />
+                  <Text
+                    className="ml-2 text-base"
+                    style={{ fontFamily: 'Nunito_700Bold', color: '#1E40AF' }}
+                  >
+                    {documentReminders.length} rappel{documentReminders.length > 1 ? 's' : ''} programmé{documentReminders.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+                {documentReminders.slice(0, 2).map((reminder) => (
+                  <View key={reminder.id} className="flex-row items-center justify-between py-1">
+                    <Text
+                      className="text-sm flex-1"
+                      style={{ fontFamily: 'Nunito_400Regular', color: '#3B82F6' }}
+                    >
+                      📅 {formatReminderDate(reminder.scheduledDate)}
+                    </Text>
+                    <Pressable
+                      onPress={() => handleCancelReminder(reminder.notificationId)}
+                      className="p-1"
+                    >
+                      <X size={16} color="#6B7280" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Document Card */}
+          <Animated.View
+            entering={FadeInUp.duration(400).delay(150)}
+            className="bg-white rounded-3xl overflow-hidden mb-5"
+            style={{ shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 8 }}
+          >
+            <View className="px-6 pt-6 pb-3 border-b border-gray-100">
+              <View className="self-start rounded-xl px-4 py-2" style={{ backgroundColor: '#F3F4F6' }}>
+                <Text className="text-base" style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
+                  {currentDocument.type} • {currentDocument.organisme}
                 </Text>
               </View>
             </View>
 
-            {/* Title */}
-            <Text
-              className="text-2xl text-text-primary mb-4"
-              style={{ fontFamily: 'Nunito_800ExtraBold' }}
-            >
-              {currentDocument.titre}
-            </Text>
+            <View className="px-6 py-5">
+              <Text
+                className="text-2xl text-text-primary leading-9"
+                style={{ fontFamily: 'Nunito_800ExtraBold' }}
+              >
+                {currentDocument.titre}
+              </Text>
+            </View>
 
-            {/* Info Grid */}
             {(currentDocument.montant || currentDocument.dateLimite) && (
-              <View className="bg-gray-50 rounded-2xl p-4 mb-5 flex-row">
-                {currentDocument.montant && (
-                  <View className="flex-1">
-                    <Text
-                      className="text-text-secondary text-base mb-1"
-                      style={{ fontFamily: 'Nunito_400Regular' }}
-                    >
-                      💰 Montant
-                    </Text>
-                    <Text
-                      className="text-text-primary text-xl"
-                      style={{ fontFamily: 'Nunito_700Bold' }}
-                    >
-                      {currentDocument.montant}
-                    </Text>
-                  </View>
-                )}
-                {currentDocument.dateLimite && (
-                  <View className="flex-1">
-                    <Text
-                      className="text-text-secondary text-base mb-1"
-                      style={{ fontFamily: 'Nunito_400Regular' }}
-                    >
-                      📅 À faire avant
-                    </Text>
-                    <Text
-                      className="text-text-primary text-xl"
-                      style={{ fontFamily: 'Nunito_700Bold' }}
-                    >
-                      {currentDocument.dateLimite}
-                    </Text>
-                  </View>
-                )}
+              <View className="px-6 pb-5">
+                <View className="flex-row">
+                  {currentDocument.montant && (
+                    <View className="flex-1 rounded-2xl p-4 mr-2" style={{ backgroundColor: '#D1FAE5' }}>
+                      <View className="flex-row items-center mb-2">
+                        <Wallet size={20} color="#059669" />
+                        <Text className="ml-2 text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#047857' }}>
+                          Montant
+                        </Text>
+                      </View>
+                      <Text className="text-2xl" style={{ fontFamily: 'Nunito_800ExtraBold', color: '#047857' }}>
+                        {currentDocument.montant}
+                      </Text>
+                    </View>
+                  )}
+                  {currentDocument.dateLimite && (
+                    <View className="flex-1 rounded-2xl p-4 ml-2" style={{ backgroundColor: '#FEE2E2' }}>
+                      <View className="flex-row items-center mb-2">
+                        <Calendar size={20} color="#DC2626" />
+                        <Text className="ml-2 text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#991B1B' }}>
+                          À faire avant
+                        </Text>
+                      </View>
+                      <Text className="text-xl" style={{ fontFamily: 'Nunito_800ExtraBold', color: '#991B1B' }}>
+                        {currentDocument.dateLimite}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             )}
+          </Animated.View>
 
-            {/* Explanation */}
-            <View
-              className="rounded-2xl p-5"
-              style={{
-                backgroundColor: '#E3F2FD',
-                borderLeftWidth: 6,
-                borderLeftColor: '#1565C0',
-              }}
+          {/* Explication */}
+          <Animated.View entering={FadeInUp.duration(400).delay(200)} className="mb-5">
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              style={{ borderRadius: 24, padding: 20, borderWidth: 2, borderColor: '#BFDBFE' }}
             >
-              <Text
-                className="text-primary text-lg mb-2"
-                style={{ fontFamily: 'Nunito_700Bold' }}
-              >
-                💬 Ce que ça veut dire
-              </Text>
-              <Text
-                className="text-text-primary text-lg leading-7"
-                style={{ fontFamily: 'Nunito_400Regular' }}
-              >
+              <View className="flex-row items-center mb-4">
+                <Text style={{ fontSize: 28 }}>💬</Text>
+                <Text className="ml-3 text-xl" style={{ fontFamily: 'Nunito_700Bold', color: '#1E40AF' }}>
+                  Ce que ça veut dire
+                </Text>
+              </View>
+              <Text className="text-lg leading-8" style={{ fontFamily: 'Nunito_400Regular', color: '#1E3A8A' }}>
                 {currentDocument.explication}
               </Text>
-            </View>
+            </LinearGradient>
           </Animated.View>
 
-          {/* Action Card */}
-          <Animated.View
-            entering={FadeInUp.duration(400).delay(200)}
-            className="bg-white rounded-3xl p-6 mb-6"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.08,
-              shadowRadius: 12,
-              elevation: 4,
-            }}
-          >
-            <Text
-              className="text-xl text-text-primary mb-4"
-              style={{ fontFamily: 'Nunito_700Bold' }}
+          {/* Action */}
+          <Animated.View entering={FadeInUp.duration(400).delay(250)} className="mb-6">
+            <LinearGradient
+              colors={['#ECFDF5', '#D1FAE5']}
+              style={{ borderRadius: 24, padding: 20, borderWidth: 2, borderColor: '#A7F3D0' }}
             >
-              ✅ Ce que vous devez faire
-            </Text>
-            <View
-              className="rounded-2xl p-5"
-              style={{
-                backgroundColor: '#E8F5E9',
-                borderWidth: 3,
-                borderColor: '#81C784',
-              }}
-            >
-              <Text
-                className="text-lg leading-7"
-                style={{
-                  fontFamily: 'Nunito_600SemiBold',
-                  color: '#2E7D32',
-                }}
-              >
+              <View className="flex-row items-center mb-4">
+                <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: '#10B981' }}>
+                  <CheckCircle2 size={24} color="white" />
+                </View>
+                <Text className="ml-3 text-xl" style={{ fontFamily: 'Nunito_700Bold', color: '#047857' }}>
+                  Ce que vous devez faire
+                </Text>
+              </View>
+              <Text className="text-lg leading-8" style={{ fontFamily: 'Nunito_600SemiBold', color: '#065F46' }}>
                 {currentDocument.action}
               </Text>
-            </View>
+            </LinearGradient>
           </Animated.View>
 
-          {/* Action Buttons */}
-          <Animated.View
-            entering={FadeInUp.duration(400).delay(300)}
-            className="space-y-4"
-          >
+          {/* Buttons */}
+          <Animated.View entering={FadeInUp.duration(400).delay(300)} className="space-y-4">
             <Pressable
-              className="bg-primary rounded-2xl py-5 flex-row items-center justify-center active:opacity-90"
-              style={{
-                minHeight: 72,
-                shadowColor: '#1565C0',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-              }}
+              onPress={handleGenerateResponse}
+              className="rounded-3xl overflow-hidden active:scale-[0.98]"
+              style={{ shadowColor: '#2563EB', shadowOpacity: 0.35, shadowRadius: 16, elevation: 10 }}
             >
-              <PenLine size={24} color="white" />
-              <Text
-                className="text-xl text-white ml-4"
-                style={{ fontFamily: 'Nunito_700Bold' }}
-              >
-                M'aider à répondre
-              </Text>
+              <LinearGradient colors={['#2563EB', '#1D4ED8']} style={{ padding: 20, borderRadius: 24 }}>
+                <View className="flex-row items-center justify-center">
+                  <View className="w-12 h-12 rounded-2xl items-center justify-center mr-4" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                    <PenLine size={24} color="white" />
+                  </View>
+                  <Text className="text-xl text-white" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
+                    M'aider à répondre
+                  </Text>
+                </View>
+              </LinearGradient>
             </Pressable>
 
             <Pressable
-              onPress={handleSetReminder}
-              className="bg-warning rounded-2xl py-5 flex-row items-center justify-center active:opacity-90"
-              style={{
-                minHeight: 72,
-                shadowColor: '#FF9800',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-              }}
+              onPress={handleOpenReminderModal}
+              className="rounded-3xl overflow-hidden active:scale-[0.98]"
+              style={{ shadowColor: '#F59E0B', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
             >
-              <Clock size={24} color="white" />
-              <Text
-                className="text-xl text-white ml-4"
-                style={{ fontFamily: 'Nunito_700Bold' }}
-              >
-                Me rappeler plus tard
-              </Text>
+              <LinearGradient colors={['#F59E0B', '#D97706']} style={{ padding: 18, borderRadius: 24 }}>
+                <View className="flex-row items-center justify-center">
+                  <Bell size={24} color="white" />
+                  <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
+                    Me rappeler plus tard
+                  </Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setShowShareModal(true)}
+              className="rounded-3xl overflow-hidden active:scale-[0.98]"
+              style={{ shadowColor: '#10B981', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
+            >
+              <LinearGradient colors={['#10B981', '#059669']} style={{ padding: 18, borderRadius: 24 }}>
+                <View className="flex-row items-center justify-center">
+                  <Users size={24} color="white" />
+                  <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
+                    Partager avec ma famille
+                  </Text>
+                </View>
+              </LinearGradient>
             </Pressable>
 
             <Pressable
               onPress={handleArchive}
-              className="bg-white rounded-2xl py-5 flex-row items-center justify-center active:opacity-90"
-              style={{
-                minHeight: 72,
-                borderWidth: 2,
-                borderColor: '#E8EAF6',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 3,
-              }}
+              className="rounded-3xl py-5 flex-row items-center justify-center active:scale-[0.98]"
+              style={{ backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E5E7EB' }}
             >
-              <FolderOpen size={24} color="#1565C0" />
-              <Text
-                className="text-xl text-primary ml-4"
-                style={{ fontFamily: 'Nunito_700Bold' }}
-              >
+              <FolderOpen size={24} color="#6B7280" />
+              <Text className="text-xl ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#374151' }}>
                 Archiver ce document
               </Text>
             </Pressable>
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Response Modal */}
+      <Modal visible={showResponseModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowResponseModal(false)}>
+        <SafeAreaView className="flex-1 bg-background">
+          <View className="flex-1">
+            <View className="px-6 py-4 flex-row items-center justify-between border-b border-gray-200">
+              <Text className="text-2xl text-text-primary" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
+                ✍️ Votre réponse
+              </Text>
+              <Pressable onPress={() => setShowResponseModal(false)} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+                <X size={24} color="#6B7280" />
+              </Pressable>
+            </View>
+
+            <ScrollView className="flex-1 px-6 py-4">
+              {isGenerating ? (
+                <View className="items-center justify-center py-20">
+                  <ActivityIndicator size="large" color="#2563EB" />
+                  <Text className="text-lg text-text-secondary mt-4" style={{ fontFamily: 'Nunito_600SemiBold' }}>
+                    MonAdmin rédige votre réponse...
+                  </Text>
+                </View>
+              ) : generatedResponse && (
+                <View className="space-y-4">
+                  <View className="bg-white rounded-2xl p-5">
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>OBJET</Text>
+                    <Text className="text-lg text-text-primary" style={{ fontFamily: 'Nunito_700Bold' }}>{generatedResponse.objet}</Text>
+                  </View>
+                  <View className="bg-white rounded-2xl p-5">
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>CONTENU</Text>
+                    <Text className="text-base text-text-primary leading-7" style={{ fontFamily: 'Nunito_400Regular' }}>{generatedResponse.corps}</Text>
+                  </View>
+                  <View className="bg-white rounded-2xl p-5">
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>SIGNATURE</Text>
+                    <Text className="text-base text-text-primary" style={{ fontFamily: 'Nunito_400Regular' }}>{generatedResponse.signature}</Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {generatedResponse && (
+              <View className="px-6 py-4 border-t border-gray-200">
+                <Pressable onPress={handleCopyResponse} className="rounded-2xl py-4 flex-row items-center justify-center active:scale-[0.98]" style={{ backgroundColor: '#2563EB' }}>
+                  <Copy size={22} color="white" />
+                  <Text className="text-lg text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>Copier la réponse</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Reminder Modal */}
+      <Modal visible={showReminderModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowReminderModal(false)}>
+        <SafeAreaView className="flex-1 bg-background">
+          <View className="flex-1">
+            <View className="px-6 py-4 flex-row items-center justify-between border-b border-gray-200">
+              <Text className="text-2xl text-text-primary" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
+                🔔 Créer un rappel
+              </Text>
+              <Pressable onPress={() => setShowReminderModal(false)} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+                <X size={24} color="#6B7280" />
+              </Pressable>
+            </View>
+
+            <ScrollView className="flex-1 px-6 py-6">
+              <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
+                Quand voulez-vous être rappelé ?
+              </Text>
+              
+              <View className="space-y-3">
+                {[
+                  { id: 'demain', label: 'Demain matin', desc: '9h00', icon: '☀️' },
+                  { id: '3jours', label: 'Dans 3 jours', desc: '9h00', icon: '📅' },
+                  { id: 'semaine', label: 'Dans une semaine', desc: '9h00', icon: '📆' },
+                  ...(currentDocument.dateLimite ? [{ id: 'auto', label: 'Rappels automatiques', desc: `J-${rappelsJoursAvant.join(', J-')}`, icon: '🤖' }] : []),
+                ].map((option) => (
+                  <Pressable
+                    key={option.id}
+                    onPress={() => setSelectedReminderOption(option.id)}
+                    className="p-5 rounded-2xl flex-row items-center"
+                    style={{
+                      backgroundColor: selectedReminderOption === option.id ? '#FEF3C7' : '#F9FAFB',
+                      borderWidth: selectedReminderOption === option.id ? 2 : 0,
+                      borderColor: '#F59E0B',
+                    }}
+                  >
+                    <Text style={{ fontSize: 28, marginRight: 16 }}>{option.icon}</Text>
+                    <View className="flex-1">
+                      <Text
+                        className="text-lg"
+                        style={{ fontFamily: 'Nunito_600SemiBold', color: selectedReminderOption === option.id ? '#92400E' : '#374151' }}
+                      >
+                        {option.label}
+                      </Text>
+                      <Text
+                        className="text-sm"
+                        style={{ fontFamily: 'Nunito_400Regular', color: '#6B7280' }}
+                      >
+                        {option.desc}
+                      </Text>
+                    </View>
+                    {selectedReminderOption === option.id && <CheckCircle2 size={24} color="#F59E0B" />}
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Existing reminders */}
+              {documentReminders.length > 0 && (
+                <View className="mt-8">
+                  <Text className="text-base text-text-secondary mb-3" style={{ fontFamily: 'Nunito_700Bold' }}>
+                    Rappels existants
+                  </Text>
+                  {documentReminders.map((reminder) => (
+                    <View
+                      key={reminder.id}
+                      className="flex-row items-center justify-between p-4 rounded-xl mb-2"
+                      style={{ backgroundColor: '#F3F4F6' }}
+                    >
+                      <View className="flex-row items-center flex-1">
+                        <Bell size={18} color="#6B7280" />
+                        <Text className="text-sm ml-2 flex-1" style={{ fontFamily: 'Nunito_400Regular', color: '#374151' }}>
+                          {formatReminderDate(reminder.scheduledDate)}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleCancelReminder(reminder.notificationId)}
+                        className="w-8 h-8 rounded-full bg-red-50 items-center justify-center"
+                      >
+                        <Trash2 size={16} color="#EF4444" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+
+            <View className="px-6 py-4 border-t border-gray-200">
+              <Pressable
+                onPress={handleSetReminder}
+                disabled={!selectedReminderOption || isScheduling}
+                className="rounded-2xl py-4 flex-row items-center justify-center active:scale-[0.98]"
+                style={{ backgroundColor: selectedReminderOption ? '#F59E0B' : '#E5E7EB' }}
+              >
+                {isScheduling ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Bell size={22} color={selectedReminderOption ? 'white' : '#9CA3AF'} />
+                    <Text className="text-lg ml-3" style={{ fontFamily: 'Nunito_700Bold', color: selectedReminderOption ? 'white' : '#9CA3AF' }}>
+                      Créer le rappel
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Share Modal */}
+      {currentDocument && (
+        <ShareDocumentModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          document={currentDocument}
+        />
+      )}
     </View>
   );
 }
