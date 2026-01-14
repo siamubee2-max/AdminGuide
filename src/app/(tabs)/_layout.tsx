@@ -10,6 +10,13 @@ import {
   Nunito_700Bold,
   Nunito_800ExtraBold,
 } from '@expo-google-fonts/nunito';
+import Animated, { 
+  useAnimatedStyle, 
+  withSpring,
+  interpolateColor,
+} from 'react-native-reanimated';
+
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -31,23 +38,25 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 2,
-          borderTopColor: '#E8EAF6',
+          borderTopWidth: 0,
           paddingTop: 12,
-          paddingBottom: insets.bottom + 8,
-          height: 80 + insets.bottom,
+          paddingBottom: insets.bottom + 10,
+          height: 76 + insets.bottom,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.08,
-          shadowRadius: 20,
-          elevation: 10,
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.06,
+          shadowRadius: 24,
+          elevation: 20,
         },
-        tabBarActiveTintColor: '#1565C0',
+        tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarLabelStyle: {
-          fontFamily: 'Nunito_600SemiBold',
-          fontSize: 14,
+          fontFamily: 'Nunito_700Bold',
+          fontSize: 12,
           marginTop: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
       }}
     >
@@ -56,8 +65,17 @@ export default function TabLayout() {
         options={{
           title: 'Accueil',
           tabBarIcon: ({ color, focused }) => (
-            <View className={`p-2 rounded-xl ${focused ? 'bg-primary/10' : ''}`}>
-              <Home size={28} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View 
+              className={`px-4 py-2 rounded-2xl`}
+              style={{ 
+                backgroundColor: focused ? '#EFF6FF' : 'transparent',
+              }}
+            >
+              <Home 
+                size={26} 
+                color={focused ? '#2563EB' : '#9CA3AF'} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
             </View>
           ),
         }}
@@ -67,10 +85,20 @@ export default function TabLayout() {
         options={{
           title: 'Scanner',
           tabBarIcon: ({ color, focused }) => (
-            <View className={`p-2 rounded-xl ${focused ? 'bg-primary/10' : ''}`}>
-              <Camera size={28} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View 
+              className={`px-4 py-2 rounded-2xl`}
+              style={{ 
+                backgroundColor: focused ? '#FEF3C7' : 'transparent',
+              }}
+            >
+              <Camera 
+                size={26} 
+                color={focused ? '#D97706' : '#9CA3AF'} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
             </View>
           ),
+          tabBarActiveTintColor: '#D97706',
         }}
       />
       <Tabs.Screen
@@ -78,10 +106,20 @@ export default function TabLayout() {
         options={{
           title: 'Documents',
           tabBarIcon: ({ color, focused }) => (
-            <View className={`p-2 rounded-xl ${focused ? 'bg-primary/10' : ''}`}>
-              <FolderOpen size={28} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View 
+              className={`px-4 py-2 rounded-2xl`}
+              style={{ 
+                backgroundColor: focused ? '#F5F3FF' : 'transparent',
+              }}
+            >
+              <FolderOpen 
+                size={26} 
+                color={focused ? '#7C3AED' : '#9CA3AF'} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
             </View>
           ),
+          tabBarActiveTintColor: '#7C3AED',
         }}
       />
     </Tabs>

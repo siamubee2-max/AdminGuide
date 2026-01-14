@@ -1,18 +1,26 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Document, User, DocumentCategory } from '../types';
+import { offlineService } from '../services/offline-service';
+
+const STORAGE_KEY = 'monadmin_documents';
 
 interface DocumentStore {
   documents: Document[];
   user: User;
   selectedCategory: DocumentCategory;
   currentDocument: Document | null;
+  isLoading: boolean;
+  isInitialized: boolean;
 
   // Actions
+  loadDocuments: () => Promise<void>;
   setDocuments: (documents: Document[]) => void;
   addDocument: (document: Document) => void;
   setCurrentDocument: (document: Document | null) => void;
   setSelectedCategory: (category: DocumentCategory) => void;
   archiveDocument: (id: number) => void;
+  updateDocument: (id: number, updates: Partial<Document>) => void;
 }
 
 const INITIAL_DOCUMENTS: Document[] = [
@@ -23,7 +31,7 @@ const INITIAL_DOCUMENTS: Document[] = [
     titre: 'Facture électricité',
     urgence: 'orange',
     urgenceLabel: 'Cette semaine',
-    urgenceIcon: '!',
+    urgenceIcon: '⏰',
     montant: '127,50€',
     dateLimite: '15 janvier 2026',
     explication: "C'est votre facture d'électricité pour décembre. Vous devez payer 127,50€ avant le 15 janvier. Vous pouvez payer par virement ou prélèvement automatique.",
@@ -38,7 +46,7 @@ const INITIAL_DOCUMENTS: Document[] = [
     titre: 'Convocation médecin conseil',
     urgence: 'rouge',
     urgenceLabel: 'Urgent',
-    urgenceIcon: '⚠',
+    urgenceIcon: '⚠️',
     dateLimite: '10 janvier 2026',
     explication: 'Votre mutuelle vous demande de voir leur médecin conseil. C\'est pour vérifier votre dossier de remboursement. Le rendez-vous est obligatoire.',
     action: 'Aller au rendez-vous le 10 janvier à 10h30',
@@ -60,28 +68,94 @@ const INITIAL_DOCUMENTS: Document[] = [
   },
 ];
 
-export const useDocumentStore = create<DocumentStore>((set) => ({
-  documents: INITIAL_DOCUMENTS,
+// Helper to save documents to cache
+async function saveToCache(documents: Document[]) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
+    await offlineService.cacheDocuments(documents);
+  } catch (error) {
+    console.error('Error saving documents to cache:', error);
+  }
+}
+
+export const useDocumentStore = create<DocumentStore>((set, get) => ({
+  documents: [],
   user: {
     name: 'Marie',
-    avatar: '👴',
+    avatar: '👵',
   },
   selectedCategory: 'tous',
   currentDocument: null,
+  isLoading: true,
+  isInitialized: false,
 
-  setDocuments: (documents) => set({ documents }),
+  loadDocuments: async () => {
+    try {
+      set({ isLoading: true });
+      
+      // Try to load from cache first
+      const cached = await AsyncStorage.getItem(STORAGE_KEY);
+      
+      if (cached) {
+        const documents = JSON.parse(cached) as Document[];
+        set({ documents, isLoading: false, isInitialized: true });
+      } else {
+        // First time - use initial documents
+        set({ documents: INITIAL_DOCUMENTS, isLoading: false, isInitialized: true });
+        await saveToCache(INITIAL_DOCUMENTS);
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      // Fallback to initial documents
+      set({ documents: INITIAL_DOCUMENTS, isLoading: false, isInitialized: true });
+    }
+  },
 
-  addDocument: (document) =>
-    set((state) => ({
-      documents: [document, ...state.documents],
-    })),
+  setDocuments: (documents) => {
+    set({ documents });
+    saveToCache(documents);
+  },
+
+  addDocument: (document) => {
+    const newDocuments = [document, ...get().documents];
+    set({ documents: newDocuments });
+    saveToCache(newDocuments);
+  },
 
   setCurrentDocument: (document) => set({ currentDocument: document }),
 
   setSelectedCategory: (category) => set({ selectedCategory: category }),
 
-  archiveDocument: (id) =>
-    set((state) => ({
-      documents: state.documents.filter((doc) => doc.id !== id),
-    })),
+  archiveDocument: async (id) => {
+    const newDocuments = get().documents.filter((doc) => doc.id !== id);
+    set({ documents: newDocuments });
+    
+    // Check if online
+    const isOnline = await offlineService.checkConnection();
+    
+    if (isOnline) {
+      // In production, this would call an API
+      await saveToCache(newDocuments);
+    } else {
+      // Add to pending actions for later sync
+      await offlineService.addPendingAction('archive_document', { documentId: id });
+      await saveToCache(newDocuments);
+    }
+  },
+
+  updateDocument: async (id, updates) => {
+    const newDocuments = get().documents.map((doc) =>
+      doc.id === id ? { ...doc, ...updates } : doc
+    );
+    set({ documents: newDocuments });
+    
+    const isOnline = await offlineService.checkConnection();
+    
+    if (isOnline) {
+      await saveToCache(newDocuments);
+    } else {
+      await offlineService.addPendingAction('update_document', { documentId: id, updates });
+      await saveToCache(newDocuments);
+    }
+  },
 }));

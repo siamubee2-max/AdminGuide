@@ -26,25 +26,28 @@ export interface User {
 
 export const URGENCE_STYLES = {
   vert: {
-    background: '#E8F5E9',
-    border: '#4CAF50',
-    text: '#2E7D32',
+    background: '#D1FAE5',
+    border: '#10B981',
+    text: '#059669',
     label: 'Pas urgent',
     icon: '✓',
+    gradient: ['#D1FAE5', '#A7F3D0'] as const,
   },
   orange: {
-    background: '#FFF3E0',
-    border: '#FF9800',
-    text: '#E65100',
+    background: '#FEF3C7',
+    border: '#F59E0B',
+    text: '#D97706',
     label: 'Cette semaine',
-    icon: '!',
+    icon: '⏰',
+    gradient: ['#FEF3C7', '#FDE68A'] as const,
   },
   rouge: {
-    background: '#FFEBEE',
-    border: '#F44336',
-    text: '#C62828',
+    background: '#FEE2E2',
+    border: '#EF4444',
+    text: '#DC2626',
     label: 'Urgent',
-    icon: '⚠',
+    icon: '⚠️',
+    gradient: ['#FEE2E2', '#FECACA'] as const,
   },
 } as const;
 
