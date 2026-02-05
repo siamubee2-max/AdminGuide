@@ -172,6 +172,7 @@ export default function ScannerScreen() {
         categorie: analysis.categorie || 'tous',
         imageUri: capturedImage,
         dateAjout: new Date().toISOString().split('T')[0],
+        contenuBrut: analysis.contenuBrut || undefined,
       };
 
       addDocument(newDocument);
