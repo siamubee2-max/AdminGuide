@@ -12,6 +12,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -114,6 +116,7 @@ class NotificationService {
           }),
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: reminderDate,
         },
       });

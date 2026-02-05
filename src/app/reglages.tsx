@@ -21,9 +21,10 @@ import {
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { 
-  useSettingsStore, 
-  FontSize, 
+import {
+  useSettingsStore,
+  SettingsStore,
+  FontSize,
   VoiceSpeed,
 } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
@@ -34,7 +35,7 @@ export default function ReglagesScreen() {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<Section>('main');
   
-  const settings = useSettingsStore();
+  const settings = useSettingsStore((s) => s);
   const display = useDisplaySettings();
   
   const navigateToSection = (section: Section) => {
@@ -207,7 +208,7 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
 }
 
 // Section Profil
-function ProfilSection({ settings }: { settings: ReturnType<typeof useSettingsStore> }) {
+function ProfilSection({ settings }: { settings: SettingsStore }) {
   const [prenom, setPrenom] = useState(settings.profile.prenom);
   const [nom, setNom] = useState(settings.profile.nom);
   const [telephone, setTelephone] = useState(settings.profile.telephone);
@@ -269,7 +270,7 @@ function ProfilSection({ settings }: { settings: ReturnType<typeof useSettingsSt
 }
 
 // Section Affichage
-function AffichageSection({ settings }: { settings: ReturnType<typeof useSettingsStore> }) {
+function AffichageSection({ settings }: { settings: SettingsStore }) {
   const fontSizes: { id: FontSize; label: string; sampleSize: number }[] = [
     { id: 'normal', label: 'Normal', sampleSize: 16 },
     { id: 'grand', label: 'Grand', sampleSize: 19 },
@@ -473,7 +474,7 @@ function AffichageSection({ settings }: { settings: ReturnType<typeof useSetting
 }
 
 // Section Son
-function SonSection({ settings }: { settings: ReturnType<typeof useSettingsStore> }) {
+function SonSection({ settings }: { settings: SettingsStore }) {
   const voiceSpeeds: { id: VoiceSpeed; label: string }[] = [
     { id: 'lent', label: 'Lent' },
     { id: 'normal', label: 'Normal' },
@@ -555,7 +556,7 @@ function SonSection({ settings }: { settings: ReturnType<typeof useSettingsStore
 }
 
 // Section Notifications
-function NotificationsSection({ settings }: { settings: ReturnType<typeof useSettingsStore> }) {
+function NotificationsSection({ settings }: { settings: SettingsStore }) {
   const toggleRappelJour = (jour: number) => {
     const current = settings.rappelsJoursAvant;
     if (current.includes(jour)) {
@@ -611,7 +612,7 @@ function NotificationsSection({ settings }: { settings: ReturnType<typeof useSet
 }
 
 // Section Famille
-function FamilleSection({ settings }: { settings: ReturnType<typeof useSettingsStore> }) {
+function FamilleSection({ settings }: { settings: SettingsStore }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAidant, setNewAidant] = useState({
     prenom: '',
@@ -802,12 +803,13 @@ function AProposSection() {
 
       <View className="bg-white rounded-2xl overflow-hidden">
         {[
-          { label: 'Politique de confidentialité', icon: '🔒' },
-          { label: "Conditions d'utilisation", icon: '📄' },
-          { label: 'Nous contacter', icon: '✉️' },
+          { label: 'Questions fréquentes', icon: '❓', route: '/faq' as const },
+          { label: 'Politique de confidentialité', icon: '🔒', route: '/confidentialite' as const },
+          { label: "Conditions d'utilisation", icon: '📄', route: '/cgu' as const },
         ].map((item, index) => (
           <Pressable
             key={item.label}
+            onPress={() => router.push(item.route)}
             className="p-5 flex-row items-center active:bg-gray-50"
             style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: '#F3F4F6' }}
           >
