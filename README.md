@@ -39,6 +39,12 @@ MonAdmin est une application mobile conçue pour aider les personnes âgées à 
 - Interface vocale pour poser des questions
 - Commandes comme "Lis-moi mon dernier courrier"
 
+### Pages légales et aide
+- **FAQ** : Questions fréquentes organisées par catégorie avec accordéons interactifs
+- **Politique de confidentialité** : Collecte, stockage, partage des données et droits RGPD
+- **CGU** : Conditions générales d'utilisation en 9 articles
+- Accessibles depuis Réglages > À propos
+
 ## Design
 
 L'application suit un design "senior-friendly" avec:
@@ -60,6 +66,9 @@ src/
 │   │   └── documents.tsx   # Liste des documents
 │   ├── resultat.tsx        # Résultat d'analyse
 │   ├── vocal.tsx           # Mode vocal
+│   ├── confidentialite.tsx # Politique de confidentialité
+│   ├── cgu.tsx             # Conditions générales d'utilisation
+│   ├── faq.tsx             # Questions fréquentes
 │   └── _layout.tsx         # Layout racine
 ├── lib/
 │   ├── state/

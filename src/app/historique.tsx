@@ -84,7 +84,7 @@ export default function HistoriqueScreen() {
 
   const handleActionPress = (action: HistoryAction) => {
     if (action.documentId) {
-      const doc = documents.find(d => d.id === action.documentId);
+      const doc = documents.find(d => String(d.id) === action.documentId);
       if (doc) {
         setCurrentDocument(doc);
         router.push('/resultat');

@@ -49,7 +49,7 @@ interface Settings {
   lastSyncDate: string | null;
 }
 
-interface SettingsStore extends Settings {
+export interface SettingsStore extends Settings {
   // Actions profil
   updateProfile: (profile: Partial<UserProfile>) => void;
   

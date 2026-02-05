@@ -245,9 +245,7 @@ export default function VocalScreen() {
       
       // Auto-stop after 5 seconds for demo
       setTimeout(() => {
-        if (voiceState === 'listening') {
-          setVoiceState('idle');
-        }
+        setVoiceState((current) => current === 'listening' ? 'idle' : current);
       }, 10000);
     } else if (voiceState === 'speaking') {
       Speech.stop();
