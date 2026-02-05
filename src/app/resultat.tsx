@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen, 
-  Calendar, Wallet, CheckCircle2, X, Copy, Bell, BellOff, Trash2, Share2, Users 
+import {
+  ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen,
+  Calendar, Wallet, CheckCircle2, X, Copy, Bell, BellOff, Trash2, Share2, Users,
+  Play, Square, BookOpen
 } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown, FadeInUp, FadeIn,
+  useAnimatedStyle, useSharedValue, withRepeat, withTiming, withSequence, Easing,
+} from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -21,6 +25,46 @@ import { ScheduledReminder } from '@/lib/services/notification-service';
 import { ShareDocumentModal } from '@/components/ShareDocumentModal';
 import { useFamilyStore } from '@/lib/state/family-store';
 
+type ReadMode = 'resume' | 'complet';
+
+function SoundWave({ active, color }: { active: boolean; color: string }) {
+  const bar1 = useSharedValue(0.3);
+  const bar2 = useSharedValue(0.6);
+  const bar3 = useSharedValue(0.4);
+  const bar4 = useSharedValue(0.7);
+  const bar5 = useSharedValue(0.5);
+
+  useEffect(() => {
+    if (active) {
+      bar1.value = withRepeat(withSequence(withTiming(1, { duration: 400 }), withTiming(0.2, { duration: 300 })), -1, true);
+      bar2.value = withRepeat(withSequence(withTiming(0.8, { duration: 300 }), withTiming(0.3, { duration: 400 })), -1, true);
+      bar3.value = withRepeat(withSequence(withTiming(1, { duration: 500 }), withTiming(0.15, { duration: 350 })), -1, true);
+      bar4.value = withRepeat(withSequence(withTiming(0.7, { duration: 350 }), withTiming(0.25, { duration: 300 })), -1, true);
+      bar5.value = withRepeat(withSequence(withTiming(0.9, { duration: 280 }), withTiming(0.2, { duration: 420 })), -1, true);
+    } else {
+      bar1.value = withTiming(0.3, { duration: 300 });
+      bar2.value = withTiming(0.3, { duration: 300 });
+      bar3.value = withTiming(0.3, { duration: 300 });
+      bar4.value = withTiming(0.3, { duration: 300 });
+      bar5.value = withTiming(0.3, { duration: 300 });
+    }
+  }, [active]);
+
+  const s1 = useAnimatedStyle(() => ({ height: bar1.value * 28, backgroundColor: color }));
+  const s2 = useAnimatedStyle(() => ({ height: bar2.value * 28, backgroundColor: color }));
+  const s3 = useAnimatedStyle(() => ({ height: bar3.value * 28, backgroundColor: color }));
+  const s4 = useAnimatedStyle(() => ({ height: bar4.value * 28, backgroundColor: color }));
+  const s5 = useAnimatedStyle(() => ({ height: bar5.value * 28, backgroundColor: color }));
+
+  return (
+    <View className="flex-row items-center" style={{ gap: 3, height: 28 }}>
+      {[s1, s2, s3, s4, s5].map((s, i) => (
+        <Animated.View key={i} style={[{ width: 4, borderRadius: 2 }, s]} />
+      ))}
+    </View>
+  );
+}
+
 export default function ResultatScreen() {
   const router = useRouter();
   const currentDocument = useDocumentStore((s) => s.currentDocument);
@@ -30,6 +74,7 @@ export default function ResultatScreen() {
   const rappelsJoursAvant = useSettingsStore((s) => s.rappelsJoursAvant);
   
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [readMode, setReadMode] = useState<ReadMode>('complet');
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [generatedResponse, setGeneratedResponse] = useState<{
@@ -77,6 +122,13 @@ export default function ResultatScreen() {
     }
   }, [currentDocument?.id]);
 
+  // Stop speech when leaving the screen
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   if (!currentDocument) {
     return (
       <View className="flex-1 bg-background items-center justify-center px-8">
@@ -112,20 +164,30 @@ export default function ResultatScreen() {
 
   const urgenceStyle = URGENCE_STYLES[currentDocument.urgence];
 
-  const handleReadAloud = async () => {
+  const handleReadAloud = async (mode?: ReadMode) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     if (isSpeaking) {
       Speech.stop();
       setIsSpeaking(false);
     } else {
+      const selectedMode = mode ?? readMode;
+      setReadMode(selectedMode);
       setIsSpeaking(true);
-      const textToRead = `${currentDocument.titre}. ${currentDocument.explication}. Ce que vous devez faire: ${currentDocument.action}`;
+
+      let textToRead: string;
+      if (selectedMode === 'complet' && currentDocument.contenuBrut) {
+        textToRead = currentDocument.contenuBrut;
+      } else {
+        textToRead = `${currentDocument.titre}. ${currentDocument.explication}. Ce que vous devez faire: ${currentDocument.action}`;
+      }
+
       Speech.speak(textToRead, {
         language: 'fr-FR',
         rate: getVoiceRate(vitesseVocale),
         onDone: () => setIsSpeaking(false),
         onStopped: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
       });
     }
   };
@@ -301,7 +363,7 @@ export default function ResultatScreen() {
           </Pressable>
           
           <Pressable
-            onPress={handleReadAloud}
+            onPress={() => handleReadAloud()}
             className="w-14 h-14 rounded-2xl items-center justify-center active:scale-95"
             style={{ 
               backgroundColor: isSpeaking ? urgenceStyle.border : 'rgba(255,255,255,0.9)',
@@ -475,6 +537,132 @@ export default function ResultatScreen() {
                 {currentDocument.action}
               </Text>
             </LinearGradient>
+          </Animated.View>
+
+          {/* Audio Reader Card */}
+          <Animated.View entering={FadeInUp.duration(400).delay(275)} className="mb-6">
+            <View
+              className="rounded-3xl overflow-hidden"
+              style={{
+                backgroundColor: '#1E293B',
+                shadowColor: '#000',
+                shadowOpacity: 0.25,
+                shadowRadius: 20,
+                elevation: 12,
+              }}
+            >
+              {/* Header with icon */}
+              <View className="px-6 pt-5 pb-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <View
+                      className="w-12 h-12 rounded-2xl items-center justify-center"
+                      style={{ backgroundColor: '#7C3AED' }}
+                    >
+                      <BookOpen size={24} color="white" />
+                    </View>
+                    <View className="ml-3">
+                      <Text
+                        className="text-lg text-white"
+                        style={{ fontFamily: 'Nunito_700Bold' }}
+                      >
+                        Lire le courrier
+                      </Text>
+                      <Text
+                        className="text-sm"
+                        style={{ fontFamily: 'Nunito_400Regular', color: '#94A3B8' }}
+                      >
+                        {isSpeaking ? 'Lecture en cours...' : 'Appuyez pour lancer la lecture'}
+                      </Text>
+                    </View>
+                  </View>
+                  {isSpeaking && <SoundWave active={isSpeaking} color="#A78BFA" />}
+                </View>
+              </View>
+
+              {/* Mode selector */}
+              <View className="px-6 py-3 flex-row" style={{ gap: 8 }}>
+                <Pressable
+                  onPress={() => {
+                    if (isSpeaking) {
+                      Speech.stop();
+                      setIsSpeaking(false);
+                    }
+                    setReadMode('complet');
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center active:scale-[0.97]"
+                  style={{
+                    backgroundColor: readMode === 'complet' ? '#7C3AED' : '#334155',
+                  }}
+                >
+                  <Text
+                    className="text-sm"
+                    style={{
+                      fontFamily: 'Nunito_700Bold',
+                      color: readMode === 'complet' ? 'white' : '#94A3B8',
+                    }}
+                  >
+                    Courrier complet
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (isSpeaking) {
+                      Speech.stop();
+                      setIsSpeaking(false);
+                    }
+                    setReadMode('resume');
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center active:scale-[0.97]"
+                  style={{
+                    backgroundColor: readMode === 'resume' ? '#7C3AED' : '#334155',
+                  }}
+                >
+                  <Text
+                    className="text-sm"
+                    style={{
+                      fontFamily: 'Nunito_700Bold',
+                      color: readMode === 'resume' ? 'white' : '#94A3B8',
+                    }}
+                  >
+                    Résumé simplifié
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Play / Stop button */}
+              <View className="px-6 pt-2 pb-5">
+                <Pressable
+                  onPress={() => handleReadAloud(readMode)}
+                  className="rounded-2xl py-4 flex-row items-center justify-center active:scale-[0.97]"
+                  style={{
+                    backgroundColor: isSpeaking ? '#EF4444' : '#7C3AED',
+                  }}
+                >
+                  {isSpeaking ? (
+                    <>
+                      <Square size={22} color="white" fill="white" />
+                      <Text
+                        className="text-lg text-white ml-3"
+                        style={{ fontFamily: 'Nunito_700Bold' }}
+                      >
+                        Arrêter la lecture
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Play size={22} color="white" fill="white" />
+                      <Text
+                        className="text-lg text-white ml-3"
+                        style={{ fontFamily: 'Nunito_700Bold' }}
+                      >
+                        Lire à voix haute
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            </View>
           </Animated.View>
 
           {/* Buttons */}

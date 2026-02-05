@@ -14,6 +14,7 @@ interface AnalysisResult {
   dateLimite?: string;
   explication: string;
   action: string;
+  contenuBrut?: string;
 }
 
 interface GeneratedResponse {
@@ -43,7 +44,8 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte:
   "montant": "Montant si applicable ou null",
   "dateLimite": "Date limite si applicable ou null",
   "explication": "Explication simple en 2-3 phrases",
-  "action": "Ce que la personne doit faire concrètement"
+  "action": "Ce que la personne doit faire concrètement",
+  "contenuBrut": "Transcription complète et fidèle du texte visible sur le document, mot pour mot, en conservant la structure (paragraphes, sauts de ligne). Ne résume pas, recopie tout le texte."
 }
 
 Critères d'urgence:
@@ -89,7 +91,7 @@ async function analyzeWithClaude(imageBase64: string): Promise<AnalysisResult> {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
+        max_tokens: 4096,
         messages: [
           {
             role: 'user',
@@ -104,7 +106,7 @@ async function analyzeWithClaude(imageBase64: string): Promise<AnalysisResult> {
               },
               {
                 type: 'text',
-                text: 'Analyse ce document administratif français et fournis les informations demandées.',
+                text: 'Analyse ce document administratif français et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.',
               },
             ],
           },
@@ -159,12 +161,12 @@ async function analyzeWithOpenAI(imageBase64: string): Promise<AnalysisResult> {
               },
               {
                 type: 'text',
-                text: 'Analyse ce document administratif français et fournis les informations demandées.',
+                text: 'Analyse ce document administratif français et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.',
               },
             ],
           },
         ],
-        max_tokens: 1024,
+        max_tokens: 4096,
       }),
     });
 
@@ -201,6 +203,7 @@ function mockAnalysis(): AnalysisResult {
       dateLimite: '25 janvier 2026',
       explication: "C'est votre facture de régularisation pour l'électricité. Le montant tient compte de votre consommation réelle. Vous devez payer 89,50€.",
       action: 'Payer 89,50€ avant le 25 janvier par virement ou prélèvement',
+      contenuBrut: "ENGIE\nService Clients\n\nFacture de régularisation\nRéférence client : 1234567890\nDate : 10 janvier 2026\n\nMadame, Monsieur,\n\nSuite au relevé de votre compteur effectué le 5 janvier 2026, nous avons procédé à la régularisation de votre consommation d'électricité.\n\nDétail de la facture :\n- Consommation estimée : 72,00€\n- Consommation réelle : 89,50€\n- Montant à régulariser : 17,50€\n\nMontant total dû : 89,50€\nDate limite de paiement : 25 janvier 2026\n\nVous pouvez régler cette facture par prélèvement automatique, virement bancaire ou chèque.\n\nCordialement,\nLe Service Clients ENGIE",
     },
     {
       type: 'Courrier',
@@ -211,6 +214,7 @@ function mockAnalysis(): AnalysisResult {
       urgenceLabel: 'Pas urgent',
       explication: "C'est le récapitulatif de vos remboursements de soins du mois dernier. Tout a été traité correctement.",
       action: 'Rien à faire, à conserver pour vos archives',
+      contenuBrut: "MUTUELLE SANTÉ PLUS\nVotre relevé de remboursements\n\nPériode : Décembre 2025\nNuméro adhérent : MS-987654\n\nChère adhérente,\n\nVeuillez trouver ci-dessous le récapitulatif de vos remboursements pour le mois de décembre 2025.\n\nConsultation Dr Martin (12/12/2025) :\n- Montant : 25,00€\n- Sécurité sociale : 17,50€\n- Part mutuelle : 7,50€\n\nPharmacie (15/12/2025) :\n- Montant : 12,80€\n- Sécurité sociale : 8,96€\n- Part mutuelle : 3,84€\n\nTotal remboursé : 11,34€\nVirement effectué le 28/12/2025\n\nCordialement,\nMutuelle Santé Plus",
     },
   ];
   

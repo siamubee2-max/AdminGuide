@@ -17,6 +17,7 @@ export interface Document {
   categorie: DocumentCategory;
   imageUri?: string;
   dateAjout: string;
+  contenuBrut?: string;
 }
 
 export interface User {

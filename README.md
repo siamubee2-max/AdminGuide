@@ -22,8 +22,12 @@ MonAdmin est une application mobile conçue pour aider les personnes âgées à 
 - Affichage clair du type de document et niveau d'urgence
 - Explication simplifiée du contenu
 - Actions recommandées
-- Lecture vocale du document
-- Options: répondre, rappeler, archiver
+- Lecteur audio intégré avec deux modes :
+  - **Courrier complet** : lecture mot pour mot du texte OCR extrait
+  - **Résumé simplifié** : lecture du titre, explication et action à faire
+- Animation d'ondes sonores pendant la lecture
+- Arrêt automatique en quittant l'écran
+- Options: répondre, rappeler, partager, archiver
 
 ### Mes documents
 - Liste de tous les documents scannés
