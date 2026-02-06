@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import {
+  fetchFamilyMembers as fetchMembersRemote,
+  upsertFamilyMember,
+  deleteFamilyMember as deleteMemberRemote,
+  fetchSharedDocuments as fetchSharesRemote,
+  upsertSharedDocument,
+  deleteSharedDocument as deleteShareRemote,
+} from '../services/supabase-sync';
 
 export type FamilyRole = 'owner' | 'helper' | 'viewer';
 
@@ -95,6 +103,29 @@ export const useFamilyStore = create<FamilyState>((set, get) => ({
   loadFamily: async () => {
     set({ isLoading: true });
     try {
+      // Try Supabase first
+      const [remoteMembers, remoteShares] = await Promise.all([
+        fetchMembersRemote(),
+        fetchSharesRemote(),
+      ]);
+
+      if (remoteMembers && remoteMembers.length > 0) {
+        const invitesData = await AsyncStorage.getItem(INVITES_STORAGE_KEY);
+        set({
+          members: remoteMembers,
+          sharedDocuments: remoteShares ?? [],
+          pendingInvites: invitesData ? JSON.parse(invitesData) : [],
+          isLoading: false,
+        });
+        // Cache locally
+        await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(remoteMembers));
+        if (remoteShares) {
+          await AsyncStorage.setItem(SHARES_STORAGE_KEY, JSON.stringify(remoteShares));
+        }
+        return;
+      }
+
+      // Fall back to local
       const [membersData, sharesData, invitesData] = await Promise.all([
         AsyncStorage.getItem(FAMILY_STORAGE_KEY),
         AsyncStorage.getItem(SHARES_STORAGE_KEY),
@@ -123,7 +154,8 @@ export const useFamilyStore = create<FamilyState>((set, get) => ({
     const updatedMembers = [...get().members, newMember];
     await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(updatedMembers));
     set({ members: updatedMembers });
-    
+    upsertFamilyMember(newMember);
+
     return newMember;
   },
 
@@ -133,20 +165,23 @@ export const useFamilyStore = create<FamilyState>((set, get) => ({
     );
     await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(updatedMembers));
     set({ members: updatedMembers });
+    const updated = updatedMembers.find((m) => m.id === id);
+    if (updated) upsertFamilyMember(updated);
   },
 
   removeMember: async (id) => {
     const updatedMembers = get().members.filter((m) => m.id !== id);
     await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(updatedMembers));
-    
+
     // Also remove from all shared documents
     const updatedShares = get().sharedDocuments.map((share) => ({
       ...share,
       sharedWith: share.sharedWith.filter((memberId) => memberId !== id),
     })).filter((share) => share.sharedWith.length > 0);
-    
+
     await AsyncStorage.setItem(SHARES_STORAGE_KEY, JSON.stringify(updatedShares));
     set({ members: updatedMembers, sharedDocuments: updatedShares });
+    deleteMemberRemote(id);
   },
 
   shareDocument: async (documentId, memberIds, message) => {
@@ -179,6 +214,9 @@ export const useFamilyStore = create<FamilyState>((set, get) => ({
 
     await AsyncStorage.setItem(SHARES_STORAGE_KEY, JSON.stringify(updatedShares));
     set({ sharedDocuments: updatedShares });
+    // Sync updated share to Supabase
+    const shareToSync = updatedShares.find((s) => s.documentId === documentId);
+    if (shareToSync) upsertSharedDocument(shareToSync);
   },
 
   unshareDocument: async (documentId, memberId) => {
@@ -198,6 +236,14 @@ export const useFamilyStore = create<FamilyState>((set, get) => ({
 
     await AsyncStorage.setItem(SHARES_STORAGE_KEY, JSON.stringify(updatedShares));
     set({ sharedDocuments: updatedShares });
+
+    // Sync to Supabase
+    const remaining = updatedShares.find((s) => s.documentId === documentId);
+    if (remaining) {
+      upsertSharedDocument(remaining);
+    } else {
+      deleteShareRemote(documentId);
+    }
   },
 
   getDocumentShares: (documentId) => {

@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  fetchSettings as fetchSettingsRemote,
+  saveSettingsRemote,
+} from '../services/supabase-sync';
 
 export type FontSize = 'normal' | 'grand' | 'tres_grand';
 export type VoiceSpeed = 'lent' | 'normal' | 'rapide';
@@ -189,10 +193,23 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   loadSettings: async () => {
     try {
+      // Try Supabase first
+      const remoteSettings = await fetchSettingsRemote();
+      if (remoteSettings && Object.keys(remoteSettings).length > 0) {
+        const parsed = remoteSettings as unknown as Partial<Settings>;
+        set({ ...DEFAULT_SETTINGS, ...parsed });
+        // Cache locally
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, ...parsed }));
+        return;
+      }
+
+      // Fall back to local
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<Settings>;
         set({ ...DEFAULT_SETTINGS, ...parsed });
+        // Sync local settings to Supabase
+        saveSettingsRemote({ ...DEFAULT_SETTINGS, ...parsed } as unknown as Record<string, unknown>);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -218,6 +235,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         lastSyncDate: state.lastSyncDate,
       };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      // Sync to Supabase in background
+      saveSettingsRemote(toSave as unknown as Record<string, unknown>);
     } catch (error) {
       console.error('Error saving settings:', error);
     }
