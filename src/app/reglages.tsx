@@ -4,23 +4,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  User, 
-  Eye, 
-  Volume2, 
-  Bell, 
-  Users, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Eye,
+  Volume2,
+  Bell,
+  Users,
   Info,
   Check,
   Trash2,
   Plus,
   Phone,
   Mail,
+  Crown,
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
 import {
   useSettingsStore,
   SettingsStore,
@@ -28,6 +30,7 @@ import {
   VoiceSpeed,
 } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
+import { hasEntitlement } from '@/lib/revenuecatClient';
 
 type Section = 'main' | 'profil' | 'affichage' | 'son' | 'notifications' | 'famille' | 'apropos';
 
@@ -155,6 +158,17 @@ export default function ReglagesScreen() {
 
 // Section principale avec liste des catégories
 function MainSection({ onNavigate, display }: { onNavigate: (section: Section) => void; display: ReturnType<typeof useDisplaySettings> }) {
+  const router = useRouter();
+
+  // Check premium status
+  const { data: isPremium } = useQuery({
+    queryKey: ['premium-status'],
+    queryFn: async () => {
+      const result = await hasEntitlement('premium');
+      return result.ok ? result.data : false;
+    },
+  });
+
   const menuItems = [
     { id: 'profil' as Section, icon: User, label: 'Mon profil', emoji: '👤', color: '#2563EB', bg: '#DBEAFE', bgDark: '#1E3A5F' },
     { id: 'affichage' as Section, icon: Eye, label: 'Affichage', emoji: '👁️', color: '#7C3AED', bg: '#F5F3FF', bgDark: '#312E81' },
@@ -166,10 +180,59 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
 
   return (
     <View className="space-y-3">
+      {/* Premium Banner */}
+      <Animated.View entering={FadeInUp.duration(400)}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/premium');
+          }}
+          className="rounded-2xl p-5 flex-row items-center active:scale-[0.98] overflow-hidden"
+          style={{
+            backgroundColor: isPremium ? '#FEF3C7' : '#1E3A8A',
+          }}
+        >
+          <LinearGradient
+            colors={isPremium ? ['#FEF3C7', '#FDE68A'] : ['#1E3A8A', '#2563EB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <View
+            className="w-14 h-14 rounded-2xl items-center justify-center"
+            style={{ backgroundColor: isPremium ? '#F59E0B' : 'rgba(255,255,255,0.2)' }}
+          >
+            <Crown size={28} color={isPremium ? 'white' : '#FCD34D'} />
+          </View>
+          <View className="flex-1 ml-4">
+            <Text
+              style={{
+                fontFamily: 'Nunito_700Bold',
+                fontSize: display.fontSize.xl,
+                color: isPremium ? '#92400E' : 'white',
+              }}
+            >
+              {isPremium ? 'Vous êtes Premium' : 'Passer à Premium'}
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Nunito_400Regular',
+                fontSize: display.fontSize.sm,
+                color: isPremium ? '#B45309' : '#BFDBFE',
+                marginTop: 2,
+              }}
+            >
+              {isPremium ? 'Toutes les fonctionnalités débloquées' : '6,99€/mois • Fonctionnalités illimitées'}
+            </Text>
+          </View>
+          <ChevronRight size={24} color={isPremium ? '#92400E' : 'white'} />
+        </Pressable>
+      </Animated.View>
+
       {menuItems.map((item, index) => (
         <Animated.View
           key={item.id}
-          entering={FadeInUp.duration(400).delay(index * 80)}
+          entering={FadeInUp.duration(400).delay((index + 1) * 80)}
         >
           <Pressable
             onPress={() => onNavigate(item.id)}
