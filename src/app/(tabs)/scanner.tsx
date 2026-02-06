@@ -5,13 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Camera, RotateCcw, Sparkles } from 'lucide-react-native';
-import Animated, { 
-  FadeIn, 
-  FadeInUp, 
+import Animated, {
+  FadeIn,
+  FadeInUp,
   FadeInDown,
-  useAnimatedStyle, 
-  useSharedValue, 
-  withRepeat, 
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
   withTiming,
   withSequence,
   Easing,
@@ -24,10 +24,12 @@ import { useHistoryStore } from '@/lib/state/history-store';
 import { analyzeDocumentWithAI } from '@/lib/services/ai-service';
 import { Document, URGENCE_STYLES } from '@/lib/types';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useTranslation } from '@/lib/i18n';
 
 type ScanState = 'ready' | 'capturing' | 'preview' | 'analyzing' | 'error';
 
 export default function ScannerScreen() {
+  const t = useTranslation();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
@@ -130,7 +132,7 @@ export default function ScannerScreen() {
     if (!requirePremium()) return;
 
     setScanState('analyzing');
-    setAnalysisStep('Lecture du document...');
+    setAnalysisStep(t('scanner.step_reading'));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
@@ -141,16 +143,16 @@ export default function ScannerScreen() {
           encoding: FileSystem.EncodingType.Base64,
         });
         imageBase64 = base64;
-        setAnalysisStep('Analyse en cours...');
+        setAnalysisStep(t('scanner.step_analyzing'));
       } catch (e) {
         console.log('Error reading file, using camera base64');
       }
 
       // Call AI analysis
-      setAnalysisStep('MonAdmin comprend votre courrier...');
+      setAnalysisStep(t('scanner.step_understanding'));
       const analysis = await analyzeDocumentWithAI(imageBase64, capturedImage);
-      
-      setAnalysisStep('Préparation du résultat...');
+
+      setAnalysisStep(t('scanner.step_preparing'));
       
       // Complete progress animation
       analyzeProgress.value = withTiming(1, { duration: 500 });
@@ -196,7 +198,7 @@ export default function ScannerScreen() {
     } catch (error) {
       console.error('Analysis error:', error);
       setScanState('error');
-      setErrorMessage("Une erreur s'est produite lors de l'analyse. Veuillez réessayer.");
+      setErrorMessage(t('scanner.error_msg'));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -229,13 +231,13 @@ export default function ScannerScreen() {
               className="text-3xl text-white text-center mb-4"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
-              Autoriser la caméra
+              {t('scanner.permission_title')}
             </Text>
             <Text
               className="text-lg text-white/80 text-center mb-10 leading-7"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              Pour scanner vos courriers, MonAdmin a besoin d'accéder à votre caméra.
+              {t('scanner.permission_msg')}
             </Text>
             <Pressable
               onPress={requestPermission}
@@ -246,7 +248,7 @@ export default function ScannerScreen() {
                 className="text-xl"
                 style={{ fontFamily: 'Nunito_700Bold', color: '#1E40AF' }}
               >
-                Autoriser l'accès
+                {t('scanner.permission_btn')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -295,7 +297,7 @@ export default function ScannerScreen() {
             onPress={() => router.back()}
             className="flex-row items-center mb-5 active:opacity-70"
           >
-            <View 
+            <View
               className="w-10 h-10 rounded-full items-center justify-center mr-2"
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
@@ -305,10 +307,10 @@ export default function ScannerScreen() {
               className="text-white text-lg"
               style={{ fontFamily: 'Nunito_600SemiBold' }}
             >
-              Retour
+              {t('scanner.back')}
             </Text>
           </Pressable>
-          
+
           <View className="flex-row items-center">
             <Text style={{ fontSize: 32 }}>📄</Text>
             <View className="ml-3">
@@ -316,7 +318,7 @@ export default function ScannerScreen() {
                 className="text-3xl text-white"
                 style={{ fontFamily: 'Nunito_800ExtraBold' }}
               >
-                Scanner un courrier
+                {t('scanner.title')}
               </Text>
               <Text
                 className="text-lg text-white/70 mt-1"
@@ -325,8 +327,8 @@ export default function ScannerScreen() {
                 {scanState === 'analyzing'
                   ? analysisStep
                   : scanState === 'error'
-                  ? '❌ Erreur'
-                  : 'Placez le document dans le cadre'}
+                  ? t('scanner.error_status')
+                  : t('scanner.instruction')}
               </Text>
             </View>
           </View>
@@ -371,7 +373,7 @@ export default function ScannerScreen() {
                         className="text-2xl text-text-primary mb-2 text-center"
                         style={{ fontFamily: 'Nunito_800ExtraBold' }}
                       >
-                        Analyse en cours
+                        {t('scanner.analyzing_title')}
                       </Text>
                       <Text
                         className="text-base text-text-secondary mb-5 text-center"
@@ -418,7 +420,7 @@ export default function ScannerScreen() {
                         className="text-xl text-text-primary mb-2 text-center"
                         style={{ fontFamily: 'Nunito_700Bold' }}
                       >
-                        Oups !
+                        {t('scanner.error_title')}
                       </Text>
                       <Text
                         className="text-base text-text-secondary text-center"
@@ -479,7 +481,7 @@ export default function ScannerScreen() {
                           className="text-white text-lg text-center"
                           style={{ fontFamily: 'Nunito_600SemiBold' }}
                         >
-                          Placez votre courrier ici
+                          {t('scanner.place_doc')}
                         </Text>
                       </View>
                     </View>
@@ -491,7 +493,7 @@ export default function ScannerScreen() {
         </View>
 
         {/* Action Buttons */}
-        <Animated.View 
+        <Animated.View
           entering={FadeInUp.duration(400).delay(200)}
           className="px-6 pb-6"
         >
@@ -508,7 +510,7 @@ export default function ScannerScreen() {
                 elevation: 10,
               }}
             >
-              <View 
+              <View
                 className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
                 style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
               >
@@ -518,7 +520,7 @@ export default function ScannerScreen() {
                 className="text-2xl text-white"
                 style={{ fontFamily: 'Nunito_800ExtraBold' }}
               >
-                Prendre la photo
+                {t('scanner.capture_btn')}
               </Text>
             </Pressable>
           )}
@@ -531,7 +533,7 @@ export default function ScannerScreen() {
                   className="text-white text-xl ml-3"
                   style={{ fontFamily: 'Nunito_600SemiBold' }}
                 >
-                  Photo capturée !
+                  {t('scanner.captured')}
                 </Text>
               </View>
             </View>
@@ -552,7 +554,7 @@ export default function ScannerScreen() {
                     elevation: 10,
                   }}
                 >
-                  <View 
+                  <View
                     className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
                     style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
                   >
@@ -562,15 +564,15 @@ export default function ScannerScreen() {
                     className="text-2xl text-white"
                     style={{ fontFamily: 'Nunito_800ExtraBold' }}
                   >
-                    Analyser ce courrier
+                    {t('scanner.analyze_btn')}
                   </Text>
                 </Pressable>
               )}
-              
+
               <Pressable
                 onPress={handleRetake}
                 className="rounded-3xl py-4 flex-row items-center justify-center active:opacity-80"
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(255,255,255,0.15)',
                   borderWidth: 2,
                   borderColor: 'rgba(255,255,255,0.3)',
@@ -581,7 +583,7 @@ export default function ScannerScreen() {
                   className="text-lg text-white ml-3"
                   style={{ fontFamily: 'Nunito_600SemiBold' }}
                 >
-                  {scanState === 'error' ? 'Réessayer' : 'Reprendre la photo'}
+                  {scanState === 'error' ? t('scanner.retry') : t('scanner.retake')}
                 </Text>
               </Pressable>
             </View>

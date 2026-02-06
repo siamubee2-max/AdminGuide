@@ -3,8 +3,8 @@ import { View, Text, ScrollView, Pressable, Modal, TextInput, Alert, Share } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
   Plus,
   UserPlus,
@@ -21,31 +21,33 @@ import {
   Edit3,
   Link,
 } from 'lucide-react-native';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
   FadeIn,
   SlideInRight,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { 
-  useFamilyStore, 
-  FamilyMember, 
+import {
+  useFamilyStore,
+  FamilyMember,
   FamilyRole,
   FAMILY_AVATARS,
   ROLE_CONFIG,
   formatMemberName,
 } from '@/lib/state/family-store';
 import { useHistoryStore } from '@/lib/state/history-store';
+import { useTranslation } from '@/lib/i18n';
 
 export default function FamilleScreen() {
   const router = useRouter();
+  const t = useTranslation();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string>('');
-  
+
   // Form state
   const [formPrenom, setFormPrenom] = useState('');
   const [formNom, setFormNom] = useState('');
@@ -62,7 +64,7 @@ export default function FamilleScreen() {
   const removeMember = useFamilyStore((s) => s.removeMember);
   const generateInviteCode = useFamilyStore((s) => s.generateInviteCode);
   const sharedDocuments = useFamilyStore((s) => s.sharedDocuments);
-  
+
   const addAction = useHistoryStore((s) => s.addAction);
 
   useEffect(() => {
@@ -141,12 +143,12 @@ export default function FamilleScreen() {
 
   const handleRemoveMember = (member: FamilyMember) => {
     Alert.alert(
-      'Supprimer ce membre ?',
+      t('family.delete_confirm'),
       `${formatMemberName(member)} n'aura plus accès aux documents partagés.`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -209,7 +211,7 @@ export default function FamilleScreen() {
               className="text-white text-lg"
               style={{ fontFamily: 'Nunito_600SemiBold' }}
             >
-              Retour
+              {t('common.back')}
             </Text>
           </Pressable>
           
@@ -220,13 +222,13 @@ export default function FamilleScreen() {
                 className="text-3xl text-white"
                 style={{ fontFamily: 'Nunito_800ExtraBold' }}
               >
-                Ma Famille
+                {t('family.title')}
               </Text>
               <Text
                 className="text-base text-white/80 mt-1"
                 style={{ fontFamily: 'Nunito_400Regular' }}
               >
-                {members.length} membre{members.length > 1 ? 's' : ''} connecté{members.length > 1 ? 's' : ''}
+                {t('family.count', { count: members.length, s: members.length > 1 ? 's' : '' })}
               </Text>
             </View>
           </View>
@@ -252,10 +254,10 @@ export default function FamilleScreen() {
                 className="text-white text-base ml-2"
                 style={{ fontFamily: 'Nunito_700Bold' }}
               >
-                Ajouter
+                {t('family.add')}
               </Text>
             </Pressable>
-            
+
             <Pressable
               onPress={() => {
                 setFormRole('helper');
@@ -270,7 +272,7 @@ export default function FamilleScreen() {
                 className="text-white text-base ml-2"
                 style={{ fontFamily: 'Nunito_700Bold' }}
               >
-                Inviter
+                {t('family.invite')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -288,13 +290,13 @@ export default function FamilleScreen() {
                   className="text-base mb-1"
                   style={{ fontFamily: 'Nunito_700Bold', color: '#047857' }}
                 >
-                  Famille connectée
+                  {t('family.info_title')}
                 </Text>
                 <Text
                   className="text-sm leading-5"
                   style={{ fontFamily: 'Nunito_400Regular', color: '#065F46' }}
                 >
-                  Partagez vos courriers avec vos proches pour qu'ils puissent vous aider à les comprendre et à y répondre.
+                  {t('family.info_msg')}
                 </Text>
               </View>
             </View>

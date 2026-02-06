@@ -31,13 +31,15 @@ import {
 } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
 import { hasEntitlement } from '@/lib/revenuecatClient';
+import { useTranslation, LANGUAGES } from '@/lib/i18n';
 
 type Section = 'main' | 'profil' | 'affichage' | 'son' | 'notifications' | 'famille' | 'apropos';
 
 export default function ReglagesScreen() {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<Section>('main');
-  
+  const t = useTranslation();
+
   const settings = useSettingsStore((s) => s);
   const display = useDisplaySettings();
   
@@ -56,13 +58,13 @@ export default function ReglagesScreen() {
 
   const getSectionTitle = () => {
     switch (currentSection) {
-      case 'profil': return 'Mon profil';
-      case 'affichage': return 'Affichage';
-      case 'son': return 'Son et voix';
-      case 'notifications': return 'Notifications';
-      case 'famille': return 'Ma famille';
-      case 'apropos': return 'À propos';
-      default: return 'Réglages';
+      case 'profil': return t('settings.profile');
+      case 'affichage': return t('settings.display');
+      case 'son': return t('settings.sound');
+      case 'notifications': return t('settings.notifications');
+      case 'famille': return t('settings.family');
+      case 'apropos': return t('settings.about');
+      default: return t('settings.title');
     }
   };
 
@@ -93,13 +95,13 @@ export default function ReglagesScreen() {
               <ChevronLeft size={24} color={display.colors.primary} />
             </View>
             <Text
-              style={{ 
-                fontFamily: 'Nunito_600SemiBold', 
+              style={{
+                fontFamily: 'Nunito_600SemiBold',
                 fontSize: display.fontSize.lg,
                 color: display.colors.primary,
               }}
             >
-              {currentSection === 'main' ? 'Retour' : 'Réglages'}
+              {currentSection === 'main' ? t('settings.back') : t('settings.title')}
             </Text>
           </Pressable>
         </Animated.View>
@@ -159,6 +161,9 @@ export default function ReglagesScreen() {
 // Section principale avec liste des catégories
 function MainSection({ onNavigate, display }: { onNavigate: (section: Section) => void; display: ReturnType<typeof useDisplaySettings> }) {
   const router = useRouter();
+  const t = useTranslation();
+  const setLanguage = useSettingsStore((s) => s.setLanguage);
+  const currentLanguage = useSettingsStore((s) => s.language);
 
   // Check premium status
   const { data: isPremium } = useQuery({
@@ -170,12 +175,12 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
   });
 
   const menuItems = [
-    { id: 'profil' as Section, icon: User, label: 'Mon profil', emoji: '👤', color: '#2563EB', bg: '#DBEAFE', bgDark: '#1E3A5F' },
-    { id: 'affichage' as Section, icon: Eye, label: 'Affichage', emoji: '👁️', color: '#7C3AED', bg: '#F5F3FF', bgDark: '#312E81' },
-    { id: 'son' as Section, icon: Volume2, label: 'Son et voix', emoji: '🔊', color: '#F59E0B', bg: '#FEF3C7', bgDark: '#78350F' },
-    { id: 'notifications' as Section, icon: Bell, label: 'Notifications', emoji: '🔔', color: '#EF4444', bg: '#FEE2E2', bgDark: '#7F1D1D' },
-    { id: 'famille' as Section, icon: Users, label: 'Ma famille', emoji: '👨‍👩‍👧', color: '#10B981', bg: '#D1FAE5', bgDark: '#064E3B' },
-    { id: 'apropos' as Section, icon: Info, label: 'À propos', emoji: 'ℹ️', color: '#6B7280', bg: '#F3F4F6', bgDark: '#374151' },
+    { id: 'profil' as Section, icon: User, label: t('settings.profile'), emoji: '👤', color: '#2563EB', bg: '#DBEAFE', bgDark: '#1E3A5F' },
+    { id: 'affichage' as Section, icon: Eye, label: t('settings.display'), emoji: '👁️', color: '#7C3AED', bg: '#F5F3FF', bgDark: '#312E81' },
+    { id: 'son' as Section, icon: Volume2, label: t('settings.sound'), emoji: '🔊', color: '#F59E0B', bg: '#FEF3C7', bgDark: '#78350F' },
+    { id: 'notifications' as Section, icon: Bell, label: t('settings.notifications'), emoji: '🔔', color: '#EF4444', bg: '#FEE2E2', bgDark: '#7F1D1D' },
+    { id: 'famille' as Section, icon: Users, label: t('settings.family'), emoji: '👨‍👩‍👧', color: '#10B981', bg: '#D1FAE5', bgDark: '#064E3B' },
+    { id: 'apropos' as Section, icon: Info, label: t('settings.about'), emoji: 'ℹ️', color: '#6B7280', bg: '#F3F4F6', bgDark: '#374151' },
   ];
 
   return (
@@ -212,7 +217,7 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
                 color: isPremium ? '#92400E' : 'white',
               }}
             >
-              {isPremium ? 'Vous êtes Premium' : 'Passer à Premium'}
+              {isPremium ? t('settings.is_premium') : t('settings.go_premium')}
             </Text>
             <Text
               style={{
@@ -222,11 +227,68 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
                 marginTop: 2,
               }}
             >
-              {isPremium ? 'Toutes les fonctionnalités débloquées' : '6,99€/mois • Fonctionnalités illimitées'}
+              {isPremium ? t('settings.premium_unlocked') : t('settings.premium_price')}
             </Text>
           </View>
           <ChevronRight size={24} color={isPremium ? '#92400E' : 'white'} />
         </Pressable>
+      </Animated.View>
+
+      {/* Language Selector */}
+      <Animated.View entering={FadeInUp.duration(400).delay(80)}>
+        <View
+          className="rounded-2xl p-5"
+          style={{
+            backgroundColor: display.colors.card,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: display.isDarkMode ? 0.3 : 0.06,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          <Text
+            className="mb-4"
+            style={{
+              fontFamily: 'Nunito_700Bold',
+              fontSize: display.fontSize.lg,
+              color: display.colors.text,
+            }}
+          >
+            🌍 {t('settings.language')}
+          </Text>
+          <View className="space-y-2">
+            {LANGUAGES.map((lang) => (
+              <Pressable
+                key={lang.id}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setLanguage(lang.id);
+                }}
+                className="flex-row items-center justify-between p-3 rounded-xl"
+                style={{
+                  backgroundColor: currentLanguage === lang.id ? (display.isDarkMode ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Text style={{ fontSize: 24, marginRight: 12 }}>{lang.flag}</Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Nunito_600SemiBold',
+                      fontSize: display.fontSize.base,
+                      color: currentLanguage === lang.id ? display.colors.primary : display.colors.text,
+                    }}
+                  >
+                    {lang.label}
+                  </Text>
+                </View>
+                {currentLanguage === lang.id && (
+                  <Check size={20} color={display.colors.primary} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </Animated.View>
 
       {menuItems.map((item, index) => (
@@ -272,6 +334,8 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
 
 // Section Profil
 function ProfilSection({ settings }: { settings: SettingsStore }) {
+  const t = useTranslation();
+  const display = useDisplaySettings();
   const [prenom, setPrenom] = useState(settings.profile.prenom);
   const [nom, setNom] = useState(settings.profile.nom);
   const [telephone, setTelephone] = useState(settings.profile.telephone);
@@ -287,9 +351,19 @@ function ProfilSection({ settings }: { settings: SettingsStore }) {
   return (
     <View className="space-y-5">
       {/* Avatar picker */}
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-          Votre avatar
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-4"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.avatar')}
         </Text>
         <View className="flex-row justify-around">
           {avatars.map((avatar) => (
@@ -310,11 +384,14 @@ function ProfilSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Form fields */}
-      <View className="bg-white rounded-2xl p-5 space-y-4">
-        <InputField label="Prénom" value={prenom} onChangeText={setPrenom} placeholder="Votre prénom" />
-        <InputField label="Nom" value={nom} onChangeText={setNom} placeholder="Votre nom" />
-        <InputField label="Téléphone" value={telephone} onChangeText={setTelephone} placeholder="06 12 34 56 78" keyboardType="phone-pad" />
-        <InputField label="Adresse" value={adresse} onChangeText={setAdresse} placeholder="Votre adresse complète" multiline />
+      <View
+        className="rounded-2xl p-5 space-y-4"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <InputField label={t('settings.firstname')} value={prenom} onChangeText={setPrenom} placeholder={t('settings.firstname_ph')} />
+        <InputField label={t('settings.lastname')} value={nom} onChangeText={setNom} placeholder={t('settings.lastname_ph')} />
+        <InputField label={t('settings.phone')} value={telephone} onChangeText={setTelephone} placeholder={t('settings.phone_ph')} keyboardType="phone-pad" />
+        <InputField label={t('settings.address')} value={adresse} onChangeText={setAdresse} placeholder={t('settings.address_ph')} multiline />
       </View>
 
       {/* Save button */}
@@ -325,7 +402,7 @@ function ProfilSection({ settings }: { settings: SettingsStore }) {
       >
         <Check size={24} color="white" />
         <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
-          Enregistrer
+          {t('settings.save')}
         </Text>
       </Pressable>
     </View>
@@ -334,10 +411,13 @@ function ProfilSection({ settings }: { settings: SettingsStore }) {
 
 // Section Affichage
 function AffichageSection({ settings }: { settings: SettingsStore }) {
+  const t = useTranslation();
+  const display = useDisplaySettings();
+
   const fontSizes: { id: FontSize; label: string; sampleSize: number }[] = [
-    { id: 'normal', label: 'Normal', sampleSize: 16 },
-    { id: 'grand', label: 'Grand', sampleSize: 19 },
-    { id: 'tres_grand', label: 'Très grand', sampleSize: 22 },
+    { id: 'normal', label: t('settings.font_normal'), sampleSize: 16 },
+    { id: 'grand', label: t('settings.font_large'), sampleSize: 19 },
+    { id: 'tres_grand', label: t('settings.font_xlarge'), sampleSize: 22 },
   ];
 
   // Preview colors based on current settings
@@ -365,46 +445,56 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
           borderColor: settings.contrasteEleve ? previewColors.text : '#E5E7EB',
         }}
       >
-        <Text 
-          className="text-sm mb-2" 
-          style={{ 
-            fontFamily: 'Nunito_600SemiBold', 
-            color: settings.modeSombre ? '#9CA3AF' : '#6B7280' 
+        <Text
+          className="text-sm mb-2"
+          style={{
+            fontFamily: 'Nunito_600SemiBold',
+            color: settings.modeSombre ? '#9CA3AF' : '#6B7280'
           }}
         >
-          📱 Aperçu en direct
+          {t('settings.preview')}
         </Text>
-        <View 
+        <View
           className="rounded-xl p-4"
           style={{ backgroundColor: previewColors.card }}
         >
           <Text
-            style={{ 
+            style={{
               fontFamily: 'Nunito_700Bold',
               fontSize: fontSizes.find(f => f.id === settings.taillePolice)?.sampleSize || 16,
               color: previewColors.text,
               marginBottom: 8,
             }}
           >
-            Exemple de courrier
+            {t('settings.preview_example')}
           </Text>
           <Text
-            style={{ 
+            style={{
               fontFamily: 'Nunito_400Regular',
               fontSize: (fontSizes.find(f => f.id === settings.taillePolice)?.sampleSize || 16) - 2,
               color: settings.modeSombre ? '#D1D5DB' : '#6B7280',
               lineHeight: (fontSizes.find(f => f.id === settings.taillePolice)?.sampleSize || 16) * 1.5,
             }}
           >
-            Voici comment apparaîtra le texte avec vos réglages actuels.
+            {t('settings.preview_msg')}
           </Text>
         </View>
       </View>
 
       {/* Taille du texte */}
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-          📝 Taille du texte
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-4"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.font_size')}
         </Text>
         <View className="space-y-3">
           {fontSizes.map((size) => (
@@ -451,9 +541,19 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Mode sombre */}
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-          🌓 Thème
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-4"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.theme')}
         </Text>
         <View className="flex-row space-x-3">
           <Pressable
@@ -475,10 +575,10 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
                 color: !settings.modeSombre ? '#B45309' : '#6B7280',
               }}
             >
-              Clair
+              {t('settings.theme_light')}
             </Text>
           </Pressable>
-          
+
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -498,17 +598,20 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
                 color: settings.modeSombre ? '#E0E7FF' : '#6B7280',
               }}
             >
-              Sombre
+              {t('settings.theme_dark')}
             </Text>
           </Pressable>
         </View>
       </View>
 
       {/* Contraste élevé */}
-      <View className="bg-white rounded-2xl p-5">
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
         <ToggleRow
-          label="🔆 Contraste élevé"
-          description="Couleurs plus marquées pour mieux voir"
+          label={t('settings.contrast')}
+          description={t('settings.contrast_desc')}
           value={settings.contrasteEleve}
           onToggle={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -518,7 +621,7 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Info */}
-      <View 
+      <View
         className="rounded-2xl p-4"
         style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE' }}
       >
@@ -528,7 +631,7 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
             className="flex-1 text-sm"
             style={{ fontFamily: 'Nunito_400Regular', color: '#1E40AF', lineHeight: 20 }}
           >
-            Les modifications sont appliquées immédiatement. Vous pouvez voir l'aperçu en haut de cette page.
+            {t('settings.changes_live')}
           </Text>
         </View>
       </View>
@@ -538,18 +641,31 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
 
 // Section Son
 function SonSection({ settings }: { settings: SettingsStore }) {
+  const t = useTranslation();
+  const display = useDisplaySettings();
+
   const voiceSpeeds: { id: VoiceSpeed; label: string }[] = [
-    { id: 'lent', label: 'Lent' },
-    { id: 'normal', label: 'Normal' },
-    { id: 'rapide', label: 'Rapide' },
+    { id: 'lent', label: t('settings.speed_slow') },
+    { id: 'normal', label: t('settings.speed_normal') },
+    { id: 'rapide', label: t('settings.speed_fast') },
   ];
 
   return (
     <View className="space-y-5">
       {/* Volume */}
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-2" style={{ fontFamily: 'Nunito_700Bold' }}>
-          Volume de la voix
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-2"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.volume')}
         </Text>
         <Text className="text-base text-text-secondary mb-4" style={{ fontFamily: 'Nunito_400Regular' }}>
           {settings.volumeVocal}%
@@ -581,9 +697,19 @@ function SonSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Vitesse */}
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-          Vitesse de la voix
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-4"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.speed')}
         </Text>
         <View className="flex-row space-x-3">
           {voiceSpeeds.map((speed) => (
@@ -606,10 +732,13 @@ function SonSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Vibrations */}
-      <View className="bg-white rounded-2xl p-5">
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
         <ToggleRow
-          label="Vibrations"
-          description="Retour haptique lors des interactions"
+          label={t('settings.vibrations')}
+          description={t('settings.vibrations_desc')}
           value={settings.vibrationsActives}
           onToggle={settings.toggleVibrations}
         />
@@ -620,6 +749,9 @@ function SonSection({ settings }: { settings: SettingsStore }) {
 
 // Section Notifications
 function NotificationsSection({ settings }: { settings: SettingsStore }) {
+  const t = useTranslation();
+  const display = useDisplaySettings();
+
   const toggleRappelJour = (jour: number) => {
     const current = settings.rappelsJoursAvant;
     if (current.includes(jour)) {
@@ -631,24 +763,37 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
 
   return (
     <View className="space-y-5">
-      <View className="bg-white rounded-2xl p-5 space-y-4">
+      <View
+        className="rounded-2xl p-5 space-y-4"
+        style={{ backgroundColor: display.colors.card }}
+      >
         <ToggleRow
-          label="Activer les notifications"
-          description="Recevez des alertes pour vos courriers"
+          label={t('settings.notif_toggle')}
+          description={t('settings.notif_desc')}
           value={settings.notificationsActives}
           onToggle={settings.toggleNotifications}
         />
         <ToggleRow
-          label="Sons de notification"
-          description="Jouer un son lors des alertes"
+          label={t('settings.notif_sounds')}
+          description={t('settings.notif_sounds_desc')}
           value={settings.sonsNotification}
           onToggle={settings.toggleSonsNotification}
         />
       </View>
 
-      <View className="bg-white rounded-2xl p-5">
-        <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-          Rappels avant date limite
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: display.colors.card }}
+      >
+        <Text
+          className="mb-4"
+          style={{
+            fontFamily: 'Nunito_700Bold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.reminders')}
         </Text>
         <View className="space-y-3">
           {[1, 3, 7].map((jour) => (
@@ -661,7 +806,7 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
               }}
             >
               <Text style={{ fontFamily: 'Nunito_600SemiBold', color: '#374151' }}>
-                {jour} jour{jour > 1 ? 's' : ''} avant
+                {t('settings.days_before', { count: jour, s: jour > 1 ? 's' : '' })}
               </Text>
               {settings.rappelsJoursAvant.includes(jour) && (
                 <Check size={24} color="#10B981" />
@@ -676,6 +821,8 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
 
 // Section Famille
 function FamilleSection({ settings }: { settings: SettingsStore }) {
+  const t = useTranslation();
+  const display = useDisplaySettings();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAidant, setNewAidant] = useState({
     prenom: '',
@@ -704,12 +851,12 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
 
   const handleRemoveAidant = (id: string, prenom: string) => {
     Alert.alert(
-      'Supprimer cet aidant ?',
-      `${prenom} ne recevra plus de notifications.`,
+      t('settings.delete_helper'),
+      t('settings.delete_helper_msg', { name: prenom }),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Supprimer', 
+        { text: t('settings.cancel'), style: 'cancel' },
+        {
+          text: t('settings.delete'),
           style: 'destructive',
           onPress: () => settings.removeAidant(id),
         },
@@ -721,9 +868,12 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
     <View className="space-y-5">
       {/* Liste des aidants */}
       {settings.aidants.length > 0 && (
-        <View className="bg-white rounded-2xl overflow-hidden">
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: display.colors.card }}
+        >
           {settings.aidants.map((aidant, index) => (
-            <View 
+            <View
               key={aidant.id}
               className="p-5 flex-row items-center"
               style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: '#F3F4F6' }}
@@ -732,10 +882,22 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
                 <Text style={{ fontSize: 28 }}>👤</Text>
               </View>
               <View className="flex-1 ml-4">
-                <Text className="text-lg text-text-primary" style={{ fontFamily: 'Nunito_700Bold' }}>
+                <Text
+                  style={{
+                    fontFamily: 'Nunito_700Bold',
+                    fontSize: display.fontSize.lg,
+                    color: display.colors.text,
+                  }}
+                >
                   {aidant.prenom} {aidant.nom}
                 </Text>
-                <Text className="text-sm text-text-secondary" style={{ fontFamily: 'Nunito_400Regular' }}>
+                <Text
+                  style={{
+                    fontFamily: 'Nunito_400Regular',
+                    fontSize: display.fontSize.sm,
+                    color: display.colors.textMuted,
+                  }}
+                >
                   {aidant.relation} • {aidant.telephone}
                 </Text>
               </View>
@@ -752,58 +914,88 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
 
       {/* Empty state */}
       {settings.aidants.length === 0 && !showAddForm && (
-        <View className="bg-white rounded-2xl p-8 items-center">
+        <View
+          className="rounded-2xl p-8 items-center"
+          style={{ backgroundColor: display.colors.card }}
+        >
           <Text style={{ fontSize: 48, marginBottom: 16 }}>👨‍👩‍👧</Text>
-          <Text className="text-xl text-text-primary text-center mb-2" style={{ fontFamily: 'Nunito_700Bold' }}>
-            Aucun aidant ajouté
+          <Text
+            className="text-center mb-2"
+            style={{
+              fontFamily: 'Nunito_700Bold',
+              fontSize: display.fontSize.xl,
+              color: display.colors.text,
+            }}
+          >
+            {t('settings.no_helpers')}
           </Text>
-          <Text className="text-base text-text-secondary text-center" style={{ fontFamily: 'Nunito_400Regular' }}>
-            Ajoutez un proche pour qu'il reçoive des alertes en cas de courrier urgent
+          <Text
+            className="text-center"
+            style={{
+              fontFamily: 'Nunito_400Regular',
+              fontSize: display.fontSize.base,
+              color: display.colors.textMuted,
+            }}
+          >
+            {t('settings.helpers_desc')}
           </Text>
         </View>
       )}
 
       {/* Add form */}
       {showAddForm && (
-        <View className="bg-white rounded-2xl p-5 space-y-4">
-          <Text className="text-lg text-text-primary" style={{ fontFamily: 'Nunito_700Bold' }}>
-            Nouvel aidant
+        <View
+          className="rounded-2xl p-5 space-y-4"
+          style={{ backgroundColor: display.colors.card }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Nunito_700Bold',
+              fontSize: display.fontSize.lg,
+              color: display.colors.text,
+            }}
+          >
+            {t('settings.new_helper')}
           </Text>
-          <InputField 
-            label="Prénom" 
-            value={newAidant.prenom} 
-            onChangeText={(v) => setNewAidant({ ...newAidant, prenom: v })} 
-            placeholder="Prénom" 
+          <InputField
+            label={t('settings.firstname')}
+            value={newAidant.prenom}
+            onChangeText={(v) => setNewAidant({ ...newAidant, prenom: v })}
+            placeholder={t('settings.firstname_ph')}
           />
-          <InputField 
-            label="Téléphone" 
-            value={newAidant.telephone} 
-            onChangeText={(v) => setNewAidant({ ...newAidant, telephone: v })} 
-            placeholder="06 12 34 56 78" 
+          <InputField
+            label={t('settings.phone')}
+            value={newAidant.telephone}
+            onChangeText={(v) => setNewAidant({ ...newAidant, telephone: v })}
+            placeholder={t('settings.phone_ph')}
             keyboardType="phone-pad"
           />
-          <InputField 
-            label="Email (optionnel)" 
-            value={newAidant.email} 
-            onChangeText={(v) => setNewAidant({ ...newAidant, email: v })} 
-            placeholder="email@exemple.com" 
+          <InputField
+            label="Email (optionnel)"
+            value={newAidant.email}
+            onChangeText={(v) => setNewAidant({ ...newAidant, email: v })}
+            placeholder="email@exemple.com"
             keyboardType="email-address"
           />
-          
+
           <View className="flex-row space-x-3 pt-2">
             <Pressable
               onPress={() => setShowAddForm(false)}
               className="flex-1 py-4 rounded-xl items-center"
               style={{ backgroundColor: '#F3F4F6' }}
             >
-              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>Annuler</Text>
+              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
+                {t('settings.cancel')}
+              </Text>
             </Pressable>
             <Pressable
               onPress={handleAddAidant}
               className="flex-1 py-4 rounded-xl items-center"
               style={{ backgroundColor: '#10B981' }}
             >
-              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: 'white' }}>Ajouter</Text>
+              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: 'white' }}>
+                {t('settings.add')}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -813,12 +1005,17 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
       {!showAddForm && (
         <Pressable
           onPress={() => setShowAddForm(true)}
-          className="bg-white rounded-2xl p-5 flex-row items-center justify-center active:scale-[0.98]"
-          style={{ borderWidth: 2, borderColor: '#10B981', borderStyle: 'dashed' }}
+          className="rounded-2xl p-5 flex-row items-center justify-center active:scale-[0.98]"
+          style={{
+            backgroundColor: display.colors.card,
+            borderWidth: 2,
+            borderColor: '#10B981',
+            borderStyle: 'dashed',
+          }}
         >
           <Plus size={24} color="#10B981" />
           <Text className="text-lg ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#10B981' }}>
-            Ajouter un aidant
+            {t('settings.add_helper')}
           </Text>
         </Pressable>
       )}
@@ -829,16 +1026,18 @@ function FamilleSection({ settings }: { settings: SettingsStore }) {
 // Section À propos
 function AProposSection() {
   const router = useRouter();
+  const t = useTranslation();
+  const display = useDisplaySettings();
   const settings = useSettingsStore();
 
   const handleResetOnboarding = () => {
     Alert.alert(
-      'Revoir le tutoriel ?',
-      "L'application va redémarrer au début.",
+      t('settings.tutorial_confirm'),
+      t('settings.tutorial_msg'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Oui',
+          text: t('settings.yes'),
           onPress: async () => {
             // Reset onboarding flag
             await AsyncStorage.removeItem('monadmin_settings');
@@ -851,24 +1050,50 @@ function AProposSection() {
 
   return (
     <View className="space-y-5">
-      <View className="bg-white rounded-2xl p-6 items-center">
+      <View
+        className="rounded-2xl p-6 items-center"
+        style={{ backgroundColor: display.colors.card }}
+      >
         <Text style={{ fontSize: 64, marginBottom: 16 }}>📱</Text>
-        <Text className="text-2xl text-text-primary" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
+        <Text
+          style={{
+            fontFamily: 'Nunito_800ExtraBold',
+            fontSize: display.fontSize['2xl'],
+            color: display.colors.text,
+          }}
+        >
           MonAdmin
         </Text>
-        <Text className="text-base text-text-secondary mt-1" style={{ fontFamily: 'Nunito_400Regular' }}>
+        <Text
+          className="mt-1"
+          style={{
+            fontFamily: 'Nunito_400Regular',
+            fontSize: display.fontSize.base,
+            color: display.colors.textMuted,
+          }}
+        >
           Version 2.0.0
         </Text>
-        <Text className="text-base text-text-secondary text-center mt-4 px-4" style={{ fontFamily: 'Nunito_400Regular' }}>
-          Votre assistant administratif intelligent pour simplifier vos courriers au quotidien.
+        <Text
+          className="text-center mt-4 px-4"
+          style={{
+            fontFamily: 'Nunito_400Regular',
+            fontSize: display.fontSize.base,
+            color: display.colors.textMuted,
+          }}
+        >
+          {t('settings.app_desc')}
         </Text>
       </View>
 
-      <View className="bg-white rounded-2xl overflow-hidden">
+      <View
+        className="rounded-2xl overflow-hidden"
+        style={{ backgroundColor: display.colors.card }}
+      >
         {[
-          { label: 'Questions fréquentes', icon: '❓', route: '/faq' as const },
-          { label: 'Politique de confidentialité', icon: '🔒', route: '/confidentialite' as const },
-          { label: "Conditions d'utilisation", icon: '📄', route: '/cgu' as const },
+          { label: t('settings.faq'), icon: '❓', route: '/faq' as const },
+          { label: t('settings.privacy'), icon: '🔒', route: '/confidentialite' as const },
+          { label: t('settings.terms'), icon: '📄', route: '/cgu' as const },
         ].map((item, index) => (
           <Pressable
             key={item.label}
@@ -877,7 +1102,14 @@ function AProposSection() {
             style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: '#F3F4F6' }}
           >
             <Text style={{ fontSize: 24, marginRight: 16 }}>{item.icon}</Text>
-            <Text className="flex-1 text-lg text-text-primary" style={{ fontFamily: 'Nunito_600SemiBold' }}>
+            <Text
+              className="flex-1"
+              style={{
+                fontFamily: 'Nunito_600SemiBold',
+                fontSize: display.fontSize.lg,
+                color: display.colors.text,
+              }}
+            >
               {item.label}
             </Text>
             <ChevronRight size={20} color="#9CA3AF" />
@@ -888,18 +1120,32 @@ function AProposSection() {
       {/* Revoir le tutoriel */}
       <Pressable
         onPress={handleResetOnboarding}
-        className="bg-white rounded-2xl p-5 flex-row items-center active:bg-gray-50"
+        className="rounded-2xl p-5 flex-row items-center active:bg-gray-50"
+        style={{ backgroundColor: display.colors.card }}
       >
         <Text style={{ fontSize: 24, marginRight: 16 }}>🎓</Text>
-        <Text className="flex-1 text-lg text-text-primary" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-          Revoir le tutoriel
+        <Text
+          className="flex-1"
+          style={{
+            fontFamily: 'Nunito_600SemiBold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
+          {t('settings.tutorial')}
         </Text>
         <ChevronRight size={20} color="#9CA3AF" />
       </Pressable>
 
       <View className="items-center py-4">
-        <Text className="text-sm text-text-secondary" style={{ fontFamily: 'Nunito_400Regular' }}>
-          Fait avec ❤️ pour les seniors
+        <Text
+          style={{
+            fontFamily: 'Nunito_400Regular',
+            fontSize: display.fontSize.sm,
+            color: display.colors.textMuted,
+          }}
+        >
+          {t('settings.footer')}
         </Text>
       </View>
     </View>
@@ -907,11 +1153,11 @@ function AProposSection() {
 }
 
 // Composants utilitaires
-function InputField({ 
-  label, 
-  value, 
-  onChangeText, 
-  placeholder, 
+function InputField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
   keyboardType = 'default',
   multiline = false,
 }: {
@@ -922,9 +1168,18 @@ function InputField({
   keyboardType?: 'default' | 'phone-pad' | 'email-address';
   multiline?: boolean;
 }) {
+  const display = useDisplaySettings();
+
   return (
     <View>
-      <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>
+      <Text
+        className="mb-2"
+        style={{
+          fontFamily: 'Nunito_600SemiBold',
+          fontSize: display.fontSize.sm,
+          color: display.colors.textMuted,
+        }}
+      >
         {label}
       </Text>
       <TextInput
@@ -934,9 +1189,12 @@ function InputField({
         placeholderTextColor="#9CA3AF"
         keyboardType={keyboardType}
         multiline={multiline}
-        className="bg-gray-50 rounded-xl px-4 py-4 text-lg text-text-primary"
-        style={{ 
+        className="rounded-xl px-4 py-4"
+        style={{
           fontFamily: 'Nunito_400Regular',
+          fontSize: display.fontSize.lg,
+          color: display.colors.text,
+          backgroundColor: display.isDarkMode ? '#1F2937' : '#F9FAFB',
           minHeight: multiline ? 100 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',
         }}
@@ -945,10 +1203,10 @@ function InputField({
   );
 }
 
-function ToggleRow({ 
-  label, 
-  description, 
-  value, 
+function ToggleRow({
+  label,
+  description,
+  value,
   onToggle,
 }: {
   label: string;
@@ -956,13 +1214,27 @@ function ToggleRow({
   value: boolean;
   onToggle: () => void;
 }) {
+  const display = useDisplaySettings();
+
   return (
     <View className="flex-row items-center justify-between">
       <View className="flex-1 mr-4">
-        <Text className="text-lg text-text-primary" style={{ fontFamily: 'Nunito_600SemiBold' }}>
+        <Text
+          style={{
+            fontFamily: 'Nunito_600SemiBold',
+            fontSize: display.fontSize.lg,
+            color: display.colors.text,
+          }}
+        >
           {label}
         </Text>
-        <Text className="text-sm text-text-secondary" style={{ fontFamily: 'Nunito_400Regular' }}>
+        <Text
+          style={{
+            fontFamily: 'Nunito_400Regular',
+            fontSize: display.fontSize.sm,
+            color: display.colors.textMuted,
+          }}
+        >
           {description}
         </Text>
       </View>

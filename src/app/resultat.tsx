@@ -25,6 +25,7 @@ import { ScheduledReminder } from '@/lib/services/notification-service';
 import { ShareDocumentModal } from '@/components/ShareDocumentModal';
 import { useFamilyStore } from '@/lib/state/family-store';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useTranslation } from '@/lib/i18n';
 
 type ReadMode = 'resume' | 'complet';
 
@@ -67,13 +68,14 @@ function SoundWave({ active, color }: { active: boolean; color: string }) {
 }
 
 export default function ResultatScreen() {
+  const t = useTranslation();
   const router = useRouter();
   const currentDocument = useDocumentStore((s) => s.currentDocument);
   const archiveDocument = useDocumentStore((s) => s.archiveDocument);
   const profile = useSettingsStore((s) => s.profile);
   const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
   const rappelsJoursAvant = useSettingsStore((s) => s.rappelsJoursAvant);
-  
+
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [readMode, setReadMode] = useState<ReadMode>('complet');
   const [showResponseModal, setShowResponseModal] = useState(false);
@@ -117,7 +119,7 @@ export default function ResultatScreen() {
       // Track document view
       addAction({
         type: 'view',
-        title: `Document consulté`,
+        title: t('result.doc_viewed'),
         documentId: String(currentDocument.id),
         documentTitle: currentDocument.titre,
       });
@@ -134,11 +136,11 @@ export default function ResultatScreen() {
   if (!currentDocument) {
     return (
       <View className="flex-1 bg-background items-center justify-center px-8">
-        <Animated.View 
+        <Animated.View
           entering={FadeIn.duration(500)}
           className="items-center"
         >
-          <View 
+          <View
             className="w-28 h-28 rounded-full items-center justify-center mb-6"
             style={{ backgroundColor: '#F3F4F6' }}
           >
@@ -148,7 +150,7 @@ export default function ResultatScreen() {
             className="text-2xl text-text-primary text-center mb-3"
             style={{ fontFamily: 'Nunito_700Bold' }}
           >
-            Aucun document sélectionné
+            {t('result.no_doc')}
           </Text>
           <Pressable
             onPress={() => router.back()}
@@ -156,7 +158,7 @@ export default function ResultatScreen() {
             style={{ backgroundColor: '#2563EB' }}
           >
             <Text className="text-white text-lg" style={{ fontFamily: 'Nunito_700Bold' }}>
-              Retour
+              {t('result.back')}
             </Text>
           </Pressable>
         </Animated.View>
@@ -182,7 +184,7 @@ export default function ResultatScreen() {
       if (selectedMode === 'complet' && currentDocument.contenuBrut) {
         textToRead = currentDocument.contenuBrut;
       } else {
-        textToRead = `${currentDocument.titre}. ${currentDocument.explication}. Ce que vous devez faire: ${currentDocument.action}`;
+        textToRead = `${currentDocument.titre}. ${currentDocument.explication}. ${t('result.action')}: ${currentDocument.action}`;
       }
 
       Speech.speak(textToRead, {
@@ -197,15 +199,15 @@ export default function ResultatScreen() {
 
   const handleArchive = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     // Track archive action
     addAction({
       type: 'archived',
-      title: `Document archivé`,
+      title: t('result.doc_archived'),
       documentId: String(currentDocument.id),
       documentTitle: currentDocument.titre,
     });
-    
+
     archiveDocument(currentDocument.id);
     router.replace('/(tabs)/documents');
   };
@@ -214,7 +216,7 @@ export default function ResultatScreen() {
     if (!requirePremium()) return;
     setShowResponseModal(true);
     setIsGenerating(true);
-    
+
     try {
       const response = await generateResponseWithAI(currentDocument, {
         prenom: profile.prenom,
@@ -222,11 +224,11 @@ export default function ResultatScreen() {
         adresse: profile.adresse,
       });
       setGeneratedResponse(response);
-      
+
       // Track response generation
       addAction({
         type: 'note_added',
-        title: `Réponse générée`,
+        title: t('result.response_generated'),
         description: `Aide à la rédaction pour ${currentDocument.organisme}`,
         documentId: String(currentDocument.id),
         documentTitle: currentDocument.titre,
@@ -298,9 +300,9 @@ export default function ResultatScreen() {
       // Track reminder creation
       addAction({
         type: 'reminder_set',
-        title: `Rappel programmé`,
-        description: selectedReminderOption === 'auto' 
-          ? 'Rappels automatiques activés' 
+        title: t('result.reminder_set'),
+        description: selectedReminderOption === 'auto'
+          ? 'Rappels automatiques activés'
           : `Rappel ${selectedReminderOption === 'demain' ? 'demain' : selectedReminderOption === '3jours' ? 'dans 3 jours' : 'dans une semaine'}`,
         documentId: String(currentDocument.id),
         documentTitle: currentDocument.titre,
@@ -363,7 +365,7 @@ export default function ResultatScreen() {
               className="text-lg"
               style={{ fontFamily: 'Nunito_600SemiBold', color: urgenceStyle.text }}
             >
-              Retour
+              {t('result.back')}
             </Text>
           </Pressable>
           
@@ -426,7 +428,7 @@ export default function ResultatScreen() {
                     className="ml-2 text-base"
                     style={{ fontFamily: 'Nunito_700Bold', color: '#1E40AF' }}
                   >
-                    {documentReminders.length} rappel{documentReminders.length > 1 ? 's' : ''} programmé{documentReminders.length > 1 ? 's' : ''}
+                    {t('result.reminders_count', { count: documentReminders.length, s: documentReminders.length > 1 ? 's' : '' })}
                   </Text>
                 </View>
                 {documentReminders.slice(0, 2).map((reminder) => (
@@ -480,7 +482,7 @@ export default function ResultatScreen() {
                       <View className="flex-row items-center mb-2">
                         <Wallet size={20} color="#059669" />
                         <Text className="ml-2 text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#047857' }}>
-                          Montant
+                          {t('result.amount')}
                         </Text>
                       </View>
                       <Text className="text-2xl" style={{ fontFamily: 'Nunito_800ExtraBold', color: '#047857' }}>
@@ -493,7 +495,7 @@ export default function ResultatScreen() {
                       <View className="flex-row items-center mb-2">
                         <Calendar size={20} color="#DC2626" />
                         <Text className="ml-2 text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#991B1B' }}>
-                          À faire avant
+                          {t('result.deadline')}
                         </Text>
                       </View>
                       <Text className="text-xl" style={{ fontFamily: 'Nunito_800ExtraBold', color: '#991B1B' }}>
@@ -515,7 +517,7 @@ export default function ResultatScreen() {
               <View className="flex-row items-center mb-4">
                 <Text style={{ fontSize: 28 }}>💬</Text>
                 <Text className="ml-3 text-xl" style={{ fontFamily: 'Nunito_700Bold', color: '#1E40AF' }}>
-                  Ce que ça veut dire
+                  {t('result.explanation')}
                 </Text>
               </View>
               <Text className="text-lg leading-8" style={{ fontFamily: 'Nunito_400Regular', color: '#1E3A8A' }}>
@@ -535,7 +537,7 @@ export default function ResultatScreen() {
                   <CheckCircle2 size={24} color="white" />
                 </View>
                 <Text className="ml-3 text-xl" style={{ fontFamily: 'Nunito_700Bold', color: '#047857' }}>
-                  Ce que vous devez faire
+                  {t('result.action')}
                 </Text>
               </View>
               <Text className="text-lg leading-8" style={{ fontFamily: 'Nunito_600SemiBold', color: '#065F46' }}>
@@ -571,13 +573,13 @@ export default function ResultatScreen() {
                         className="text-lg text-white"
                         style={{ fontFamily: 'Nunito_700Bold' }}
                       >
-                        Lire le courrier
+                        {t('result.read_title')}
                       </Text>
                       <Text
                         className="text-sm"
                         style={{ fontFamily: 'Nunito_400Regular', color: '#94A3B8' }}
                       >
-                        {isSpeaking ? 'Lecture en cours...' : 'Appuyez pour lancer la lecture'}
+                        {isSpeaking ? t('result.reading') : t('result.read_instruction')}
                       </Text>
                     </View>
                   </View>
@@ -607,7 +609,7 @@ export default function ResultatScreen() {
                       color: readMode === 'complet' ? 'white' : '#94A3B8',
                     }}
                   >
-                    Courrier complet
+                    {t('result.mode_full')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -630,7 +632,7 @@ export default function ResultatScreen() {
                       color: readMode === 'resume' ? 'white' : '#94A3B8',
                     }}
                   >
-                    Résumé simplifié
+                    {t('result.mode_summary')}
                   </Text>
                 </Pressable>
               </View>
@@ -651,7 +653,7 @@ export default function ResultatScreen() {
                         className="text-lg text-white ml-3"
                         style={{ fontFamily: 'Nunito_700Bold' }}
                       >
-                        Arrêter la lecture
+                        {t('result.stop_reading')}
                       </Text>
                     </>
                   ) : (
@@ -661,7 +663,7 @@ export default function ResultatScreen() {
                         className="text-lg text-white ml-3"
                         style={{ fontFamily: 'Nunito_700Bold' }}
                       >
-                        Lire à voix haute
+                        {t('result.read_aloud')}
                       </Text>
                     </>
                   )}
@@ -683,7 +685,7 @@ export default function ResultatScreen() {
                     <PenLine size={24} color="white" />
                   </View>
                   <Text className="text-xl text-white" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
-                    M'aider à répondre
+                    {t('result.help_respond')}
                   </Text>
                 </View>
               </LinearGradient>
@@ -698,7 +700,7 @@ export default function ResultatScreen() {
                 <View className="flex-row items-center justify-center">
                   <Bell size={24} color="white" />
                   <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
-                    Me rappeler plus tard
+                    {t('result.remind_later')}
                   </Text>
                 </View>
               </LinearGradient>
@@ -716,7 +718,7 @@ export default function ResultatScreen() {
                 <View className="flex-row items-center justify-center">
                   <Users size={24} color="white" />
                   <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
-                    Partager avec ma famille
+                    {t('result.share_family')}
                   </Text>
                 </View>
               </LinearGradient>
@@ -729,7 +731,7 @@ export default function ResultatScreen() {
             >
               <FolderOpen size={24} color="#6B7280" />
               <Text className="text-xl ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#374151' }}>
-                Archiver ce document
+                {t('result.archive')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -742,7 +744,7 @@ export default function ResultatScreen() {
           <View className="flex-1">
             <View className="px-6 py-4 flex-row items-center justify-between border-b border-gray-200">
               <Text className="text-2xl text-text-primary" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
-                ✍️ Votre réponse
+                {t('result.response_title')}
               </Text>
               <Pressable onPress={() => setShowResponseModal(false)} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
                 <X size={24} color="#6B7280" />
@@ -754,21 +756,21 @@ export default function ResultatScreen() {
                 <View className="items-center justify-center py-20">
                   <ActivityIndicator size="large" color="#2563EB" />
                   <Text className="text-lg text-text-secondary mt-4" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                    MonAdmin rédige votre réponse...
+                    {t('result.generating')}
                   </Text>
                 </View>
               ) : generatedResponse && (
                 <View className="space-y-4">
                   <View className="bg-white rounded-2xl p-5">
-                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>OBJET</Text>
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>{t('result.subject')}</Text>
                     <Text className="text-lg text-text-primary" style={{ fontFamily: 'Nunito_700Bold' }}>{generatedResponse.objet}</Text>
                   </View>
                   <View className="bg-white rounded-2xl p-5">
-                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>CONTENU</Text>
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>{t('result.content')}</Text>
                     <Text className="text-base text-text-primary leading-7" style={{ fontFamily: 'Nunito_400Regular' }}>{generatedResponse.corps}</Text>
                   </View>
                   <View className="bg-white rounded-2xl p-5">
-                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>SIGNATURE</Text>
+                    <Text className="text-sm text-text-secondary mb-2" style={{ fontFamily: 'Nunito_600SemiBold' }}>{t('result.signature')}</Text>
                     <Text className="text-base text-text-primary" style={{ fontFamily: 'Nunito_400Regular' }}>{generatedResponse.signature}</Text>
                   </View>
                 </View>
@@ -779,7 +781,7 @@ export default function ResultatScreen() {
               <View className="px-6 py-4 border-t border-gray-200">
                 <Pressable onPress={handleCopyResponse} className="rounded-2xl py-4 flex-row items-center justify-center active:scale-[0.98]" style={{ backgroundColor: '#2563EB' }}>
                   <Copy size={22} color="white" />
-                  <Text className="text-lg text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>Copier la réponse</Text>
+                  <Text className="text-lg text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>{t('result.copy_response')}</Text>
                 </Pressable>
               </View>
             )}
@@ -793,7 +795,7 @@ export default function ResultatScreen() {
           <View className="flex-1">
             <View className="px-6 py-4 flex-row items-center justify-between border-b border-gray-200">
               <Text className="text-2xl text-text-primary" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
-                🔔 Créer un rappel
+                {t('result.reminder_title')}
               </Text>
               <Pressable onPress={() => setShowReminderModal(false)} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
                 <X size={24} color="#6B7280" />
@@ -802,15 +804,15 @@ export default function ResultatScreen() {
 
             <ScrollView className="flex-1 px-6 py-6">
               <Text className="text-lg text-text-primary mb-4" style={{ fontFamily: 'Nunito_700Bold' }}>
-                Quand voulez-vous être rappelé ?
+                {t('result.reminder_question')}
               </Text>
-              
+
               <View className="space-y-3">
                 {[
-                  { id: 'demain', label: 'Demain matin', desc: '9h00', icon: '☀️' },
-                  { id: '3jours', label: 'Dans 3 jours', desc: '9h00', icon: '📅' },
-                  { id: 'semaine', label: 'Dans une semaine', desc: '9h00', icon: '📆' },
-                  ...(currentDocument.dateLimite ? [{ id: 'auto', label: 'Rappels automatiques', desc: `J-${rappelsJoursAvant.join(', J-')}`, icon: '🤖' }] : []),
+                  { id: 'demain', label: t('result.tomorrow'), desc: '9h00', icon: '☀️' },
+                  { id: '3jours', label: t('result.3days'), desc: '9h00', icon: '📅' },
+                  { id: 'semaine', label: t('result.1week'), desc: '9h00', icon: '📆' },
+                  ...(currentDocument.dateLimite ? [{ id: 'auto', label: t('result.auto_reminders'), desc: `J-${rappelsJoursAvant.join(', J-')}`, icon: '🤖' }] : []),
                 ].map((option) => (
                   <Pressable
                     key={option.id}
@@ -846,7 +848,7 @@ export default function ResultatScreen() {
               {documentReminders.length > 0 && (
                 <View className="mt-8">
                   <Text className="text-base text-text-secondary mb-3" style={{ fontFamily: 'Nunito_700Bold' }}>
-                    Rappels existants
+                    {t('result.existing_reminders')}
                   </Text>
                   {documentReminders.map((reminder) => (
                     <View
@@ -885,7 +887,7 @@ export default function ResultatScreen() {
                   <>
                     <Bell size={22} color={selectedReminderOption ? 'white' : '#9CA3AF'} />
                     <Text className="text-lg ml-3" style={{ fontFamily: 'Nunito_700Bold', color: selectedReminderOption ? 'white' : '#9CA3AF' }}>
-                      Créer le rappel
+                      {t('result.create_reminder')}
                     </Text>
                   </>
                 )}

@@ -3,45 +3,47 @@ import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
   Filter,
   Calendar,
   Trash2,
   Clock,
 } from 'lucide-react-native';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
   FadeIn,
   FadeInRight,
   SlideInRight,
 } from 'react-native-reanimated';
-import { 
-  useHistoryStore, 
+import {
+  useHistoryStore,
   ActionType,
-  ACTION_CONFIG, 
+  ACTION_CONFIG,
   formatRelativeTime,
   groupActionsByDay,
   getDateGroupLabel,
   HistoryAction,
 } from '@/lib/state/history-store';
 import { useDocumentStore } from '@/lib/state/document-store';
+import { useTranslation } from '@/lib/i18n';
 
-const FILTER_OPTIONS: { id: ActionType | 'all'; label: string; icon: string }[] = [
-  { id: 'all', label: 'Tout', icon: '📋' },
-  { id: 'scan', label: 'Scans', icon: '📷' },
-  { id: 'reminder_set', label: 'Rappels', icon: '⏰' },
-  { id: 'voice_question', label: 'Vocal', icon: '🎤' },
-  { id: 'shared', label: 'Partages', icon: '🔗' },
+const FILTER_OPTIONS: { id: ActionType | 'all'; labelKey: string; icon: string }[] = [
+  { id: 'all', labelKey: 'history.all', icon: '📋' },
+  { id: 'scan', labelKey: 'history.scans_filter', icon: '📷' },
+  { id: 'reminder_set', labelKey: 'history.reminders_filter', icon: '⏰' },
+  { id: 'voice_question', labelKey: 'history.voice', icon: '🎤' },
+  { id: 'shared', labelKey: 'history.shares', icon: '🔗' },
 ];
 
 export default function HistoriqueScreen() {
   const router = useRouter();
+  const t = useTranslation();
   const [activeFilter, setActiveFilter] = useState<ActionType | 'all'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const actions = useHistoryStore((s) => s.actions);
   const loadHistory = useHistoryStore((s) => s.loadHistory);
   const clearHistory = useHistoryStore((s) => s.clearHistory);
@@ -124,7 +126,7 @@ export default function HistoriqueScreen() {
                 className="text-white text-lg"
                 style={{ fontFamily: 'Nunito_600SemiBold' }}
               >
-                Retour
+                {t('common.back')}
               </Text>
             </Pressable>
             
@@ -143,13 +145,13 @@ export default function HistoriqueScreen() {
             className="text-3xl text-white"
             style={{ fontFamily: 'Nunito_800ExtraBold' }}
           >
-            Historique
+            {t('history.title')}
           </Text>
           <Text
             className="text-lg text-white/80 mt-1"
             style={{ fontFamily: 'Nunito_400Regular' }}
           >
-            Toutes vos actions récentes
+            {t('history.subtitle')}
           </Text>
         </Animated.View>
 
@@ -164,7 +166,7 @@ export default function HistoriqueScreen() {
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               <Text className="text-white/70 text-sm" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                Aujourd'hui
+                {t('history.today')}
               </Text>
               <Text className="text-white text-2xl" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
                 {stats.todayCount}
@@ -175,7 +177,7 @@ export default function HistoriqueScreen() {
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               <Text className="text-white/70 text-sm" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                Total scans
+                {t('history.scans')}
               </Text>
               <Text className="text-white text-2xl" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
                 {stats.scansCount}
@@ -186,7 +188,7 @@ export default function HistoriqueScreen() {
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               <Text className="text-white/70 text-sm" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                Rappels
+                {t('history.reminders')}
               </Text>
               <Text className="text-white text-2xl" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
                 {stats.remindersCount}
@@ -219,12 +221,12 @@ export default function HistoriqueScreen() {
                   <Text style={{ fontSize: 16, marginRight: 6 }}>{filter.icon}</Text>
                   <Text
                     className="text-sm"
-                    style={{ 
+                    style={{
                       fontFamily: 'Nunito_700Bold',
                       color: isActive ? '#7C3AED' : 'white',
                     }}
                   >
-                    {filter.label}
+                    {t(filter.labelKey as any)}
                   </Text>
                 </Pressable>
               );
@@ -257,13 +259,13 @@ export default function HistoriqueScreen() {
                   className="text-xl text-text-primary text-center mb-2"
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
-                  Pas encore d'historique
+                  {t('history.empty')}
                 </Text>
                 <Text
                   className="text-base text-text-secondary text-center px-8"
                   style={{ fontFamily: 'Nunito_400Regular' }}
                 >
-                  Vos actions apparaîtront ici au fur et à mesure que vous utilisez l'application
+                  {t('history.empty_msg')}
                 </Text>
               </Animated.View>
             ) : (
@@ -295,7 +297,7 @@ export default function HistoriqueScreen() {
                         className="text-xs text-text-secondary"
                         style={{ fontFamily: 'Nunito_600SemiBold' }}
                       >
-                        {dayActions.length} action{dayActions.length > 1 ? 's' : ''}
+                        {t('history.actions_count', { count: dayActions.length, s: dayActions.length > 1 ? 's' : '' })}
                       </Text>
                     </View>
                   </View>
