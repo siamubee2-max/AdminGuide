@@ -23,6 +23,7 @@ import { useDocumentStore } from '@/lib/state/document-store';
 import { useHistoryStore } from '@/lib/state/history-store';
 import { analyzeDocumentWithAI } from '@/lib/services/ai-service';
 import { Document, URGENCE_STYLES } from '@/lib/types';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 type ScanState = 'ready' | 'capturing' | 'preview' | 'analyzing' | 'error';
 
@@ -39,6 +40,7 @@ export default function ScannerScreen() {
   const addDocument = useDocumentStore((s) => s.addDocument);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const addAction = useHistoryStore((s) => s.addAction);
+  const { requirePremium } = usePremium();
 
   // Animations
   const scanLinePosition = useSharedValue(0);
@@ -125,7 +127,8 @@ export default function ScannerScreen() {
 
   const handleAnalyze = async () => {
     if (!capturedImage) return;
-    
+    if (!requirePremium()) return;
+
     setScanState('analyzing');
     setAnalysisStep('Lecture du document...');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

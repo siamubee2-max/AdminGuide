@@ -23,6 +23,7 @@ import { useDocumentStore } from '@/lib/state/document-store';
 import { useSettingsStore, getVoiceRate } from '@/lib/state/settings-store';
 import { useHistoryStore } from '@/lib/state/history-store';
 import { processVoiceCommand } from '@/lib/services/ai-service';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking';
 
@@ -38,6 +39,7 @@ export default function VocalScreen() {
   const documents = useDocumentStore((s) => s.documents);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
+  const { requirePremium } = usePremium();
   const volumeVocal = useSettingsStore((s) => s.volumeVocal);
   const addAction = useHistoryStore((s) => s.addAction);
 
@@ -221,6 +223,7 @@ export default function VocalScreen() {
   }, [documents, speak, router, setCurrentDocument]);
 
   const toggleListening = async () => {
+    if (voiceState === 'idle' && !requirePremium()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     if (voiceState === 'listening') {
@@ -254,6 +257,7 @@ export default function VocalScreen() {
   };
 
   const handleExamplePress = async (text: string) => {
+    if (!requirePremium()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTranscript(text);
     await handleVoiceCommand(text);

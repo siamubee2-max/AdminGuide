@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, ImageBackground } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Camera, Mic, FolderOpen, Phone, ChevronRight, Sparkles, Settings, BarChart3, Clock, Users } from 'lucide-react-native';
+import { Camera, Mic, FolderOpen, Phone, ChevronRight, Sparkles, Settings, BarChart3, Clock, Users, Lock } from 'lucide-react-native';
 import Animated, { 
   FadeInDown, 
   FadeInUp, 
@@ -19,6 +19,7 @@ import { useDocumentStore } from '@/lib/state/document-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   
   // Display settings
   const display = useDisplaySettings();
+  const { isPremium, requirePremium } = usePremium();
 
   // Load documents on mount
   React.useEffect(() => {
@@ -252,13 +254,19 @@ export default function HomeScreen() {
           </Animated.View>
 
           {/* Bouton principal - Scanner */}
-          <Animated.View 
+          <Animated.View
             entering={FadeInUp.duration(600).delay(300).springify()}
             className="px-6 mb-5"
             style={pulseStyle}
           >
             <Pressable
-              onPress={() => router.push('/(tabs)/scanner')}
+              onPress={() => {
+                if (!isPremium) {
+                  requirePremium();
+                } else {
+                  router.push('/(tabs)/scanner');
+                }
+              }}
               className="overflow-hidden rounded-3xl active:scale-[0.98]"
               style={{
                 shadowColor: '#2563EB',
@@ -296,7 +304,11 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
-                    <Sparkles size={20} color="white" />
+                    {isPremium ? (
+                      <Sparkles size={20} color="white" />
+                    ) : (
+                      <Lock size={20} color="white" />
+                    )}
                   </View>
                 </View>
               </LinearGradient>
@@ -311,7 +323,13 @@ export default function HomeScreen() {
               className="flex-1"
             >
               <Pressable
-                onPress={() => router.push('/vocal')}
+                onPress={() => {
+                  if (!isPremium) {
+                    requirePremium();
+                  } else {
+                    router.push('/vocal');
+                  }
+                }}
                 className="rounded-3xl p-5 active:scale-[0.98]"
                 style={{
                   backgroundColor: '#FEF7ED',
@@ -324,11 +342,14 @@ export default function HomeScreen() {
                   elevation: 4,
                 }}
               >
-                <View 
-                  className="w-14 h-14 rounded-2xl items-center justify-center mb-3"
-                  style={{ backgroundColor: '#FED7AA' }}
-                >
-                  <Mic size={28} color="#EA580C" strokeWidth={2} />
+                <View className="flex-row items-center justify-between">
+                  <View
+                    className="w-14 h-14 rounded-2xl items-center justify-center mb-3"
+                    style={{ backgroundColor: '#FED7AA' }}
+                  >
+                    <Mic size={28} color="#EA580C" strokeWidth={2} />
+                  </View>
+                  {!isPremium && <Lock size={16} color="#C2410C" />}
                 </View>
                 <Text
                   className="text-lg"
