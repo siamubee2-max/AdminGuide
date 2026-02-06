@@ -24,6 +24,7 @@ import { URGENCE_STYLES } from '@/lib/types';
 import { ScheduledReminder } from '@/lib/services/notification-service';
 import { ShareDocumentModal } from '@/components/ShareDocumentModal';
 import { useFamilyStore } from '@/lib/state/family-store';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 type ReadMode = 'resume' | 'complet';
 
@@ -102,6 +103,7 @@ export default function ResultatScreen() {
   } = useNotifications();
 
   const addAction = useHistoryStore((s) => s.addAction);
+  const { requirePremium } = usePremium();
 
   // Load existing reminders, family, and track view
   useEffect(() => {
@@ -165,6 +167,7 @@ export default function ResultatScreen() {
   const urgenceStyle = URGENCE_STYLES[currentDocument.urgence];
 
   const handleReadAloud = async (mode?: ReadMode) => {
+    if (!requirePremium()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (isSpeaking) {
@@ -208,6 +211,7 @@ export default function ResultatScreen() {
   };
 
   const handleGenerateResponse = async () => {
+    if (!requirePremium()) return;
     setShowResponseModal(true);
     setIsGenerating(true);
     
@@ -243,6 +247,7 @@ export default function ResultatScreen() {
   };
 
   const handleOpenReminderModal = async () => {
+    if (!requirePremium()) return;
     // Check/request permission first
     if (!notificationsEnabled) {
       const granted = await requestPermission();
@@ -700,7 +705,10 @@ export default function ResultatScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setShowShareModal(true)}
+              onPress={() => {
+                if (!requirePremium()) return;
+                setShowShareModal(true);
+              }}
               className="rounded-3xl overflow-hidden active:scale-[0.98]"
               style={{ shadowColor: '#10B981', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
             >
