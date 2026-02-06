@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  fetchHistory as fetchHistoryRemote,
+  insertHistoryAction as insertHistoryRemote,
+  clearHistoryRemote,
+} from '../services/supabase-sync';
 
 export type ActionType = 
   | 'scan'           // Document scanné
@@ -75,17 +80,29 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     set((state) => {
       // Ajouter en début et limiter la taille
       const updatedActions = [newAction, ...state.actions].slice(0, MAX_HISTORY_ITEMS);
-      
+
       // Sauvegarder en async
       AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedActions)).catch(console.error);
-      
+
       return { actions: updatedActions };
     });
+
+    // Sync to Supabase in background
+    insertHistoryRemote(newAction);
   },
 
   loadHistory: async () => {
     set({ isLoading: true });
     try {
+      // Try Supabase first
+      const remoteActions = await fetchHistoryRemote();
+      if (remoteActions && remoteActions.length > 0) {
+        set({ actions: remoteActions, isLoading: false });
+        await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(remoteActions));
+        return;
+      }
+
+      // Fall back to local
       const stored = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
       if (stored) {
         const actions = JSON.parse(stored) as HistoryAction[];
@@ -103,6 +120,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     try {
       await AsyncStorage.removeItem(HISTORY_STORAGE_KEY);
       set({ actions: [] });
+      clearHistoryRemote();
     } catch (error) {
       console.error('Error clearing history:', error);
     }

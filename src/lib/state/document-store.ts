@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Document, User, DocumentCategory } from '../types';
 import { offlineService } from '../services/offline-service';
+import {
+  fetchDocuments as fetchDocsRemote,
+  upsertDocument,
+  deleteDocument as deleteDocRemote,
+  syncAllDocuments,
+} from '../services/supabase-sync';
 
 const STORAGE_KEY = 'monadmin_documents';
 
@@ -92,17 +98,28 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   loadDocuments: async () => {
     try {
       set({ isLoading: true });
-      
-      // Try to load from cache first
+
+      // Try Supabase first
+      const remoteDocuments = await fetchDocsRemote();
+      if (remoteDocuments && remoteDocuments.length > 0) {
+        set({ documents: remoteDocuments, isLoading: false, isInitialized: true });
+        await saveToCache(remoteDocuments);
+        return;
+      }
+
+      // Fall back to local cache
       const cached = await AsyncStorage.getItem(STORAGE_KEY);
-      
+
       if (cached) {
         const documents = JSON.parse(cached) as Document[];
         set({ documents, isLoading: false, isInitialized: true });
+        // Sync local docs to Supabase in background
+        syncAllDocuments(documents);
       } else {
         // First time - use initial documents
         set({ documents: INITIAL_DOCUMENTS, isLoading: false, isInitialized: true });
         await saveToCache(INITIAL_DOCUMENTS);
+        syncAllDocuments(INITIAL_DOCUMENTS);
       }
     } catch (error) {
       console.error('Error loading documents:', error);
@@ -120,6 +137,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     const newDocuments = [document, ...get().documents];
     set({ documents: newDocuments });
     saveToCache(newDocuments);
+    upsertDocument(document);
   },
 
   setCurrentDocument: (document) => set({ currentDocument: document }),
@@ -129,15 +147,14 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   archiveDocument: async (id) => {
     const newDocuments = get().documents.filter((doc) => doc.id !== id);
     set({ documents: newDocuments });
-    
+
     // Check if online
     const isOnline = await offlineService.checkConnection();
-    
+
     if (isOnline) {
-      // In production, this would call an API
       await saveToCache(newDocuments);
+      deleteDocRemote(id);
     } else {
-      // Add to pending actions for later sync
       await offlineService.addPendingAction('archive_document', { documentId: id });
       await saveToCache(newDocuments);
     }
@@ -148,11 +165,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       doc.id === id ? { ...doc, ...updates } : doc
     );
     set({ documents: newDocuments });
-    
+
     const isOnline = await offlineService.checkConnection();
-    
+
     if (isOnline) {
       await saveToCache(newDocuments);
+      const updated = newDocuments.find((doc) => doc.id === id);
+      if (updated) upsertDocument(updated);
     } else {
       await offlineService.addPendingAction('update_document', { documentId: id, updates });
       await saveToCache(newDocuments);

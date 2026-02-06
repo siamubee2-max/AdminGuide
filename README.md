@@ -66,16 +66,48 @@ src/
 │   │   └── documents.tsx   # Liste des documents
 │   ├── resultat.tsx        # Résultat d'analyse
 │   ├── vocal.tsx           # Mode vocal
+│   ├── premium.tsx         # Écran d'abonnement Premium
 │   ├── confidentialite.tsx # Politique de confidentialité
 │   ├── cgu.tsx             # Conditions générales d'utilisation
 │   ├── faq.tsx             # Questions fréquentes
 │   └── _layout.tsx         # Layout racine
 ├── lib/
 │   ├── state/
-│   │   └── document-store.ts  # État Zustand
+│   │   ├── document-store.ts  # État documents (Zustand + Supabase)
+│   │   ├── history-store.ts   # Historique des actions (Zustand + Supabase)
+│   │   ├── family-store.ts    # Famille et partage (Zustand + Supabase)
+│   │   └── settings-store.ts  # Paramètres utilisateur (Zustand + Supabase)
+│   ├── services/
+│   │   ├── supabase-sync.ts   # Service de sync Supabase
+│   │   ├── ai-service.ts      # Analyse IA des documents
+│   │   ├── offline-service.ts # Support hors-ligne
+│   │   └── notification-service.ts # Notifications et rappels
+│   ├── supabaseClient.ts     # Client Supabase configuré
+│   ├── revenuecatClient.ts   # Client RevenueCat (abonnements)
 │   └── types.ts               # Types TypeScript
 └── components/
 ```
+
+## Base de données Supabase
+
+L'application utilise Supabase comme base de données cloud. Les données sont synchronisées entre le stockage local (AsyncStorage) et Supabase. L'app fonctionne hors-ligne et synchonise quand la connexion est disponible.
+
+### Tables
+- `documents` : Documents scannés et analysés
+- `history_actions` : Historique des actions utilisateur
+- `family_members` : Membres de la famille / aidants
+- `shared_documents` : Documents partagés avec la famille
+- `settings` : Paramètres utilisateur (JSON)
+
+### Variables d'environnement requises
+- `EXPO_PUBLIC_SUPABASE_URL` : URL du projet Supabase
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` : Clé anonyme publique Supabase
+
+## Abonnement Premium (RevenueCat)
+
+- Abonnement mensuel à 6,99€/mois
+- Entitlement "premium"
+- Configuré sur Test Store, App Store et Play Store
 
 ## Catégories de documents
 
