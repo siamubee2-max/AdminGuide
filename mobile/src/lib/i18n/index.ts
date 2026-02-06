@@ -50,10 +50,6 @@ export function getTranslation(lang: Language) {
 
 export const LANGUAGES: { id: Language; label: string; flag: string }[] = [
   { id: 'fr', label: 'Français', flag: '🇫🇷' },
-  { id: 'en', label: 'English', flag: '🇬🇧' },
+  { id: 'en', label: 'English (US)', flag: '🇺🇸' },
   { id: 'es', label: 'Español', flag: '🇪🇸' },
-  { id: 'pt', label: 'Português', flag: '🇵🇹' },
-  { id: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { id: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { id: 'nl', label: 'Nederlands', flag: '🇳🇱' },
 ];

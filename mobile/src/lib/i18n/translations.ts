@@ -1,4 +1,4 @@
-export type Language = 'fr' | 'en' | 'es' | 'pt' | 'de' | 'it' | 'nl';
+export type Language = 'fr' | 'en' | 'es';
 
 const fr = {
   // ─── Home ───
@@ -1010,4 +1010,4 @@ const nl: TranslationDict = { ...en,
   'common.back': 'Terug', 'common.cancel': 'Annuleren', 'common.delete': 'Verwijderen', 'common.save': 'Opslaan', 'common.add': 'Toevoegen', 'common.yes': 'Ja', 'common.no': 'Nee',
 };
 
-export const translations: Record<Language, TranslationDict> = { fr, en, es, pt, de, it, nl };
+export const translations: Record<Language, TranslationDict> = { fr, en, es };
