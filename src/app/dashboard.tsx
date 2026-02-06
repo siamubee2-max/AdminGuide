@@ -3,10 +3,10 @@ import { View, Text, ScrollView, Pressable, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
-  TrendingUp, 
+  TrendingUp,
   TrendingDown,
   AlertTriangle,
   CheckCircle2,
@@ -14,9 +14,9 @@ import {
   FileText,
   Zap,
 } from 'lucide-react-native';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
@@ -27,6 +27,7 @@ import Animated, {
 import { useDocumentStore } from '@/lib/state/document-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { CATEGORIES, URGENCE_STYLES, DocumentCategory } from '@/lib/types';
+import { useTranslation } from '@/lib/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -40,6 +41,7 @@ const CATEGORY_COLORS: Record<DocumentCategory, { bg: string; text: string; icon
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const t = useTranslation();
   const documents = useDocumentStore((s) => s.documents);
   const userPrenom = useSettingsStore((s) => s.profile.prenom);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
@@ -127,7 +129,7 @@ export default function DashboardScreen() {
               className="text-white text-lg"
               style={{ fontFamily: 'Nunito_600SemiBold' }}
             >
-              Retour
+              {t('common.back')}
             </Text>
           </Pressable>
           
@@ -135,13 +137,13 @@ export default function DashboardScreen() {
             className="text-3xl text-white"
             style={{ fontFamily: 'Nunito_800ExtraBold' }}
           >
-            Tableau de bord
+            {t('dashboard.title')}
           </Text>
           <Text
             className="text-lg text-white/80 mt-1"
             style={{ fontFamily: 'Nunito_400Regular' }}
           >
-            Bonjour {userPrenom}, voici votre résumé
+            {t('dashboard.greeting', { name: userPrenom })}
           </Text>
         </Animated.View>
 
@@ -186,7 +188,7 @@ export default function DashboardScreen() {
                   className="text-sm text-text-secondary mt-1"
                   style={{ fontFamily: 'Nunito_400Regular' }}
                 >
-                  Documents total
+                  {t('dashboard.total')}
                 </Text>
               </View>
 
@@ -222,7 +224,7 @@ export default function DashboardScreen() {
                   className="text-sm mt-1"
                   style={{ fontFamily: 'Nunito_400Regular', color: stats.urgent > 0 ? '#991B1B' : '#6B7280' }}
                 >
-                  Urgent{stats.urgent > 1 ? 's' : ''}
+                  {t('dashboard.urgent', { s: stats.urgent > 1 ? 's' : '' })}
                 </Text>
               </View>
             </View>
@@ -241,7 +243,7 @@ export default function DashboardScreen() {
                 className="text-lg text-text-primary mb-4"
                 style={{ fontFamily: 'Nunito_700Bold' }}
               >
-                📊 Répartition par urgence
+                {t('dashboard.urgency_title')}
               </Text>
               
               {/* Visual bar */}
@@ -280,19 +282,19 @@ export default function DashboardScreen() {
                 <View className="flex-row items-center">
                   <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#EF4444' }} />
                   <Text className="text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
-                    Urgent ({stats.urgent})
+                    {t('dashboard.urgent_count', { count: stats.urgent })}
                   </Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#F59E0B' }} />
                   <Text className="text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
-                    Cette semaine ({stats.thisWeek})
+                    {t('dashboard.week_count', { count: stats.thisWeek })}
                   </Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: '#10B981' }} />
                   <Text className="text-sm" style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
-                    OK ({stats.notUrgent})
+                    {t('dashboard.ok_count', { count: stats.notUrgent })}
                   </Text>
                 </View>
               </View>
@@ -308,7 +310,7 @@ export default function DashboardScreen() {
               className="text-lg text-text-primary mb-4"
               style={{ fontFamily: 'Nunito_700Bold' }}
             >
-              📁 Par catégorie
+              {t('dashboard.by_category')}
             </Text>
             
             <View className="flex-row flex-wrap" style={{ marginHorizontal: -6 }}>
@@ -336,7 +338,7 @@ export default function DashboardScreen() {
                       className="text-sm"
                       style={{ fontFamily: 'Nunito_600SemiBold', color: cat.colors.text }}
                     >
-                      {cat.label}
+                      {t(`category.${cat.id}` as any)}
                     </Text>
                   </Pressable>
                 </Animated.View>
@@ -366,7 +368,7 @@ export default function DashboardScreen() {
                       className="text-lg text-white/90 ml-3"
                       style={{ fontFamily: 'Nunito_600SemiBold' }}
                     >
-                      Montants à traiter
+                      {t('dashboard.amounts')}
                     </Text>
                   </View>
                   <Text

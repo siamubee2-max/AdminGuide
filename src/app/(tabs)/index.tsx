@@ -4,9 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Camera, Mic, FolderOpen, Phone, ChevronRight, Sparkles, Settings, BarChart3, Clock, Users, Lock } from 'lucide-react-native';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
@@ -20,9 +20,11 @@ import { useSettingsStore } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useTranslation } from '@/lib/i18n';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const t = useTranslation();
   const userPrenom = useSettingsStore((s) => s.profile.prenom);
   const userAvatar = useSettingsStore((s) => s.profile.avatar);
   const documents = useDocumentStore((s) => s.documents);
@@ -42,10 +44,10 @@ export default function HomeScreen() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return { text: 'Bonjour', emoji: '☀️' };
-    if (hour < 18) return { text: "Bon après-midi", emoji: '🌤️' };
-    return { text: 'Bonsoir', emoji: '🌙' };
-  }, []);
+    if (hour < 12) return { text: t('home.greeting_morning'), emoji: '☀️' };
+    if (hour < 18) return { text: t('home.greeting_afternoon'), emoji: '🌤️' };
+    return { text: t('home.greeting_evening'), emoji: '🌙' };
+  }, [t]);
 
   const urgentCount = documents.filter((d) => d.urgence === 'rouge').length;
   const pendingCount = documents.length;
@@ -137,13 +139,13 @@ export default function HomeScreen() {
             
             <Text
               className="mt-3"
-              style={{ 
+              style={{
                 fontFamily: 'Nunito_400Regular',
                 fontSize: display.fontSize.xl,
                 color: display.colors.textSecondary,
               }}
             >
-              Que souhaitez-vous faire aujourd'hui ?
+              {t('home.subtitle')}
             </Text>
           </Animated.View>
 
@@ -189,22 +191,22 @@ export default function HomeScreen() {
                     <View className="ml-4 flex-1">
                       <Text
                         className="text-lg"
-                        style={{ 
+                        style={{
                           fontFamily: 'Nunito_700Bold',
                           color: urgentCount > 0 ? '#B45309' : '#1E40AF',
                         }}
                       >
-                        {pendingCount} courrier{pendingCount > 1 ? 's' : ''} à traiter
+                        {t('home.mail_count', { count: pendingCount, s: pendingCount > 1 ? 's' : '' })}
                       </Text>
                       {urgentCount > 0 && (
                         <Text
                           className="text-base mt-0.5"
-                          style={{ 
+                          style={{
                             fontFamily: 'Nunito_600SemiBold',
                             color: '#DC2626',
                           }}
                         >
-                          ⚠️ {urgentCount} urgent{urgentCount > 1 ? 's' : ''} !
+                          {t('home.urgent_count', { count: urgentCount, s: urgentCount > 1 ? 's' : '' })}
                         </Text>
                       )}
                     </View>
@@ -240,13 +242,13 @@ export default function HomeScreen() {
                   className="text-lg"
                   style={{ fontFamily: 'Nunito_700Bold', color: '#4338CA' }}
                 >
-                  Mon tableau de bord
+                  {t('home.dashboard')}
                 </Text>
                 <Text
                   className="text-sm"
                   style={{ fontFamily: 'Nunito_400Regular', color: '#6366F1' }}
                 >
-                  Statistiques et résumé
+                  {t('home.dashboard_sub')}
                 </Text>
               </View>
               <ChevronRight size={20} color="#6366F1" />
@@ -294,13 +296,13 @@ export default function HomeScreen() {
                       className="text-2xl text-white"
                       style={{ fontFamily: 'Nunito_800ExtraBold' }}
                     >
-                      Scanner un courrier
+                      {t('home.scan')}
                     </Text>
                     <Text
                       className="text-base text-white/80 mt-1"
                       style={{ fontFamily: 'Nunito_400Regular' }}
                     >
-                      Photographiez pour comprendre
+                      {t('home.scan_sub')}
                     </Text>
                   </View>
                   <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
@@ -355,13 +357,13 @@ export default function HomeScreen() {
                   className="text-lg"
                   style={{ fontFamily: 'Nunito_700Bold', color: '#C2410C' }}
                 >
-                  Parler
+                  {t('home.speak')}
                 </Text>
                 <Text
                   className="text-sm text-text-secondary mt-0.5"
                   style={{ fontFamily: 'Nunito_400Regular' }}
                 >
-                  Poser une question
+                  {t('home.speak_sub')}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -395,13 +397,13 @@ export default function HomeScreen() {
                   className="text-lg"
                   style={{ fontFamily: 'Nunito_700Bold', color: '#5B21B6' }}
                 >
-                  Documents
+                  {t('home.documents')}
                 </Text>
                 <Text
                   className="text-sm text-text-secondary mt-0.5"
                   style={{ fontFamily: 'Nunito_400Regular' }}
                 >
-                  Voir mes courriers
+                  {t('home.documents_sub')}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -441,13 +443,13 @@ export default function HomeScreen() {
                       className="text-xl text-white"
                       style={{ fontFamily: 'Nunito_700Bold' }}
                     >
-                      Ma famille
+                      {t('home.family')}
                     </Text>
                     <Text
                       className="text-sm text-white/80 mt-0.5"
                       style={{ fontFamily: 'Nunito_400Regular' }}
                     >
-                      Partager avec mes proches
+                      {t('home.family_sub')}
                     </Text>
                   </View>
                   <ChevronRight size={24} color="white" />
@@ -475,14 +477,14 @@ export default function HomeScreen() {
                   className="text-lg ml-2"
                   style={{ fontFamily: 'Nunito_700Bold', color: '#BE185D' }}
                 >
-                  Conseil du jour
+                  {t('home.tip_title')}
                 </Text>
               </View>
               <Text
                 className="text-base leading-6"
                 style={{ fontFamily: 'Nunito_400Regular', color: '#831843' }}
               >
-                Pensez à vérifier régulièrement vos courriers pour ne pas manquer une date importante !
+                {t('home.tip_text')}
               </Text>
             </View>
           </Animated.View>
@@ -510,13 +512,13 @@ export default function HomeScreen() {
               </View>
               <Text
                 className="ml-3"
-                style={{ 
+                style={{
                   fontFamily: 'Nunito_600SemiBold',
                   fontSize: display.fontSize.base,
                   color: display.colors.textSecondary,
                 }}
               >
-                Historique
+                {t('home.history')}
               </Text>
             </Pressable>
 
@@ -538,13 +540,13 @@ export default function HomeScreen() {
               </View>
               <Text
                 className="ml-3"
-                style={{ 
+                style={{
                   fontFamily: 'Nunito_600SemiBold',
                   fontSize: display.fontSize.base,
                   color: display.colors.textSecondary,
                 }}
               >
-                Réglages
+                {t('home.settings')}
               </Text>
             </Pressable>
           </Animated.View>

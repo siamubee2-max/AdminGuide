@@ -8,6 +8,7 @@ import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated'
 import { useDocumentStore } from '@/lib/state/document-store';
 import { CATEGORIES, URGENCE_STYLES, DocumentCategory, Document } from '@/lib/types';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { useTranslation } from '@/lib/i18n';
 
 const CATEGORY_COLORS = {
   tous: { bg: '#F3F4F6', border: '#D1D5DB', icon: '#6B7280', text: '#374151' },
@@ -18,6 +19,7 @@ const CATEGORY_COLORS = {
 };
 
 export default function DocumentsScreen() {
+  const t = useTranslation();
   const router = useRouter();
   const documents = useDocumentStore((s) => s.documents);
   const selectedCategory = useDocumentStore((s) => s.selectedCategory);
@@ -91,13 +93,13 @@ export default function DocumentsScreen() {
                 className="text-3xl text-text-primary"
                 style={{ fontFamily: 'Nunito_800ExtraBold' }}
               >
-                Mes documents
+                {t('docs.title')}
               </Text>
               <Text
                 className="text-base text-text-secondary mt-0.5"
                 style={{ fontFamily: 'Nunito_400Regular' }}
               >
-                {documents.length} courrier{documents.length > 1 ? 's' : ''} archivé{documents.length > 1 ? 's' : ''}
+                {t('docs.count', { count: documents.length, s: documents.length > 1 ? 's' : '' })}
               </Text>
             </View>
           </View>
@@ -128,7 +130,7 @@ export default function DocumentsScreen() {
             <TextInput
               className="flex-1 mx-4 text-lg text-text-primary"
               style={{ fontFamily: 'Nunito_400Regular' }}
-              placeholder="Rechercher un document..."
+              placeholder={t('docs.search')}
               placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -174,12 +176,12 @@ export default function DocumentsScreen() {
                   <Text style={{ fontSize: 24, marginBottom: 4 }}>{category.icon}</Text>
                   <Text
                     className="text-sm"
-                    style={{ 
+                    style={{
                       fontFamily: 'Nunito_700Bold',
                       color: isSelected ? colors.text : '#6B7280',
                     }}
                   >
-                    {category.label}
+                    {t(`category.${category.id}` as any)}
                   </Text>
                   <View
                     className="mt-1.5 rounded-full px-2.5 py-0.5"
@@ -224,13 +226,13 @@ export default function DocumentsScreen() {
                 className="text-xl text-text-primary text-center"
                 style={{ fontFamily: 'Nunito_700Bold' }}
               >
-                Aucun document trouvé
+                {t('docs.empty_title')}
               </Text>
               <Text
                 className="text-base text-text-secondary text-center mt-2 px-8"
                 style={{ fontFamily: 'Nunito_400Regular' }}
               >
-                Scannez un nouveau courrier pour commencer à l'organiser
+                {t('docs.empty_msg')}
               </Text>
             </Animated.View>
           ) : (
@@ -309,7 +311,7 @@ export default function DocumentsScreen() {
                               color: urgenceStyle.text,
                             }}
                           >
-                            {urgenceStyle.label}
+                            {t(`urgence.${doc.urgence}` as any)}
                           </Text>
                         </View>
                       </View>
@@ -356,11 +358,11 @@ export default function DocumentsScreen() {
                       
                       {!doc.montant && !doc.dateLimite && (
                         <View className="flex-row items-center justify-end mt-2">
-                          <Text 
+                          <Text
                             className="text-sm mr-1"
                             style={{ fontFamily: 'Nunito_400Regular', color: '#9CA3AF' }}
                           >
-                            Voir détails
+                            {t('docs.see_details')}
                           </Text>
                           <ChevronRight size={18} color="#9CA3AF" />
                         </View>

@@ -24,11 +24,13 @@ import { useSettingsStore, getVoiceRate } from '@/lib/state/settings-store';
 import { useHistoryStore } from '@/lib/state/history-store';
 import { processVoiceCommand } from '@/lib/services/ai-service';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useTranslation } from '@/lib/i18n';
 
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking';
 
 export default function VocalScreen() {
   const router = useRouter();
+  const t = useTranslation();
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState<string>('');
   const [response, setResponse] = useState<string>('');
@@ -264,9 +266,9 @@ export default function VocalScreen() {
   };
 
   const examples = [
-    { icon: '📖', text: 'Lis-moi mon dernier courrier' },
-    { icon: '📅', text: "Qu'est-ce que je dois faire cette semaine ?" },
-    { icon: '📷', text: 'Scanner un courrier' },
+    { icon: '📖', text: t('voice.example1') },
+    { icon: '📅', text: t('voice.example2') },
+    { icon: '📷', text: t('voice.example3') },
   ];
 
   const getAvatarEmoji = () => {
@@ -280,10 +282,10 @@ export default function VocalScreen() {
 
   const getStatusText = () => {
     switch (voiceState) {
-      case 'listening': return 'Je vous écoute...';
-      case 'processing': return 'Je réfléchis...';
-      case 'speaking': return 'Je vous réponds...';
-      default: return 'Parler à MonAdmin';
+      case 'listening': return t('voice.listening');
+      case 'processing': return t('voice.processing');
+      case 'speaking': return t('voice.speaking');
+      default: return t('voice.idle');
     }
   };
 
@@ -320,7 +322,7 @@ export default function VocalScreen() {
               className="text-white text-lg"
               style={{ fontFamily: 'Nunito_600SemiBold' }}
             >
-              Retour
+              {t('common.back')}
             </Text>
           </Pressable>
         </Animated.View>
@@ -421,13 +423,13 @@ export default function VocalScreen() {
                 className="text-lg text-white/80 text-center leading-7"
                 style={{ fontFamily: 'Nunito_400Regular' }}
               >
-                Appuyez sur le micro ou tapez un exemple
+                {t('voice.press_mic')}
               </Text>
             )}
             
             {voiceState === 'listening' && (
               <View className="flex-row items-center mt-2">
-                <View 
+                <View
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: '#FEE2E2' }}
                 />
@@ -435,7 +437,7 @@ export default function VocalScreen() {
                   className="text-white/90 text-base"
                   style={{ fontFamily: 'Nunito_600SemiBold' }}
                 >
-                  Parlez maintenant...
+                  {t('voice.speak_now')}
                 </Text>
               </View>
             )}
@@ -452,7 +454,7 @@ export default function VocalScreen() {
                 {transcript && (
                   <View className="mb-2">
                     <Text className="text-white/60 text-xs mb-1" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                      Vous avez dit :
+                      {t('voice.you_said')}
                     </Text>
                     <Text className="text-white text-base" style={{ fontFamily: 'Nunito_400Regular' }}>
                       "{transcript}"
@@ -462,7 +464,7 @@ export default function VocalScreen() {
                 {response && (
                   <View>
                     <Text className="text-white/60 text-xs mb-1" style={{ fontFamily: 'Nunito_600SemiBold' }}>
-                      MonAdmin :
+                      {t('voice.assistant')}
                     </Text>
                     <Text className="text-white text-base" style={{ fontFamily: 'Nunito_400Regular' }}>
                       {response}
@@ -486,7 +488,7 @@ export default function VocalScreen() {
                   className="text-white/80 text-base ml-2"
                   style={{ fontFamily: 'Nunito_600SemiBold' }}
                 >
-                  Essayez ces exemples
+                  {t('voice.examples')}
                 </Text>
               </View>
               {examples.map((example, index) => (
@@ -549,9 +551,9 @@ export default function VocalScreen() {
             className="text-white/80 text-base mt-5"
             style={{ fontFamily: 'Nunito_600SemiBold' }}
           >
-            {voiceState === 'listening' ? 'Appuyez pour arrêter' 
-              : voiceState === 'speaking' ? 'Appuyez pour arrêter'
-              : 'Appuyez pour parler'}
+            {voiceState === 'listening' ? t('voice.press_to_stop')
+              : voiceState === 'speaking' ? t('voice.press_to_stop')
+              : t('voice.press_to_speak')}
           </Text>
           
           {voiceState === 'idle' && (
@@ -561,7 +563,7 @@ export default function VocalScreen() {
                 className="text-white/60 text-sm ml-2"
                 style={{ fontFamily: 'Nunito_400Regular' }}
               >
-                Reconnaissance vocale IA
+                {t('voice.ai_label')}
               </Text>
             </View>
           )}

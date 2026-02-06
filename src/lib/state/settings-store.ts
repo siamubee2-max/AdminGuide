@@ -4,6 +4,7 @@ import {
   fetchSettings as fetchSettingsRemote,
   saveSettingsRemote,
 } from '../services/supabase-sync';
+import type { Language } from '../i18n/translations';
 
 export type FontSize = 'normal' | 'grand' | 'tres_grand';
 export type VoiceSpeed = 'lent' | 'normal' | 'rapide';
@@ -27,9 +28,12 @@ interface Aidant {
 }
 
 interface Settings {
+  // Langue
+  language: Language;
+
   // Profil
   profile: UserProfile;
-  
+
   // Affichage
   taillePolice: FontSize;
   modeSombre: boolean;
@@ -54,6 +58,9 @@ interface Settings {
 }
 
 export interface SettingsStore extends Settings {
+  // Actions langue
+  setLanguage: (lang: Language) => void;
+
   // Actions profil
   updateProfile: (profile: Partial<UserProfile>) => void;
   
@@ -88,6 +95,7 @@ export interface SettingsStore extends Settings {
 const STORAGE_KEY = 'monadmin_settings';
 
 const DEFAULT_SETTINGS: Settings = {
+  language: 'fr',
   profile: {
     prenom: 'Marie',
     nom: '',
@@ -111,6 +119,11 @@ const DEFAULT_SETTINGS: Settings = {
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   ...DEFAULT_SETTINGS,
+
+  setLanguage: (lang) => {
+    set({ language: lang });
+    get().saveSettings();
+  },
 
   updateProfile: (profileUpdate) => {
     set((state) => ({
@@ -220,6 +233,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const state = get();
       const toSave: Settings = {
+        language: state.language,
         profile: state.profile,
         taillePolice: state.taillePolice,
         modeSombre: state.modeSombre,

@@ -14,10 +14,12 @@ import {
   hasEntitlement,
 } from '@/lib/revenuecatClient';
 import type { PurchasesPackage } from 'react-native-purchases';
+import { useTranslation } from '@/lib/i18n';
 
 export default function PremiumScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslation();
 
   // Check if user already has premium
   const { data: isPremium, isLoading: checkingPremium } = useQuery({
@@ -92,23 +94,23 @@ export default function PremiumScreen() {
   const features = [
     {
       icon: FileText,
-      title: 'Courriers illimités',
-      description: 'Scannez et analysez autant de courriers que vous voulez',
+      title: t('premium.feature1'),
+      description: t('premium.feature1_desc'),
     },
     {
       icon: Volume2,
-      title: 'Lecture vocale',
-      description: 'Faites lire vos courriers à voix haute',
+      title: t('premium.feature2'),
+      description: t('premium.feature2_desc'),
     },
     {
       icon: Zap,
-      title: 'Réponses prioritaires',
-      description: 'Analyse plus rapide de vos documents',
+      title: t('premium.feature3'),
+      description: t('premium.feature3_desc'),
     },
     {
       icon: Shield,
-      title: 'Support prioritaire',
-      description: 'Une assistance dédiée pour vous aider',
+      title: t('premium.feature4'),
+      description: t('premium.feature4_desc'),
     },
   ];
 
@@ -140,14 +142,14 @@ export default function PremiumScreen() {
               className="text-3xl text-amber-900 text-center mb-4"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
-              Vous êtes Premium !
+              {t('premium.already')}
             </Animated.Text>
             <Animated.Text
               entering={FadeInUp.duration(600).delay(200)}
               className="text-lg text-amber-800 text-center mb-8"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              Profitez de toutes les fonctionnalités sans limite
+              {t('premium.already_msg')}
             </Animated.Text>
             <Animated.View entering={FadeInUp.duration(600).delay(300)}>
               <Pressable
@@ -158,7 +160,7 @@ export default function PremiumScreen() {
                   className="text-white text-lg"
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
-                  Continuer
+                  {t('premium.continue')}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -208,13 +210,13 @@ export default function PremiumScreen() {
               className="text-3xl text-white text-center mb-3"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
-              Passez à Premium
+              {t('premium.title')}
             </Text>
             <Text
               className="text-lg text-blue-100 text-center"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              Débloquez toutes les fonctionnalités de MonAdmin
+              {t('premium.subtitle')}
             </Text>
           </Animated.View>
 
@@ -259,7 +261,7 @@ export default function PremiumScreen() {
                   className="text-white text-xs"
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
-                  POPULAIRE
+                  {t('premium.popular')}
                 </Text>
               </View>
 
@@ -268,27 +270,27 @@ export default function PremiumScreen() {
                   className="text-gray-500 text-base"
                   style={{ fontFamily: 'Nunito_600SemiBold' }}
                 >
-                  Abonnement mensuel
+                  {t('premium.monthly')}
                 </Text>
                 <View className="flex-row items-baseline mt-2">
                   <Text
                     className="text-5xl text-gray-900"
                     style={{ fontFamily: 'Nunito_800ExtraBold' }}
                   >
-                    6,99€
+                    {t('premium.price')}
                   </Text>
                   <Text
                     className="text-gray-500 text-lg ml-1"
                     style={{ fontFamily: 'Nunito_400Regular' }}
                   >
-                    /mois
+                    {t('premium.per_month')}
                   </Text>
                 </View>
                 <Text
                   className="text-gray-400 text-sm mt-2"
                   style={{ fontFamily: 'Nunito_400Regular' }}
                 >
-                  Annulez à tout moment
+                  {t('premium.cancel_anytime')}
                 </Text>
               </View>
 
@@ -308,7 +310,7 @@ export default function PremiumScreen() {
                     className="text-white text-xl"
                     style={{ fontFamily: 'Nunito_700Bold' }}
                   >
-                    S'abonner maintenant
+                    {t('premium.subscribe')}
                   </Text>
                 )}
               </Pressable>
@@ -329,7 +331,7 @@ export default function PremiumScreen() {
                 className="text-blue-200 text-base underline"
                 style={{ fontFamily: 'Nunito_600SemiBold' }}
               >
-                Restaurer mes achats
+                {t('premium.restore')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -343,8 +345,7 @@ export default function PremiumScreen() {
               className="text-blue-300/60 text-xs text-center"
               style={{ fontFamily: 'Nunito_400Regular', lineHeight: 18 }}
             >
-              L'abonnement sera renouvelé automatiquement. Vous pouvez annuler
-              à tout moment depuis les paramètres de votre compte App Store.
+              {t('premium.terms')}
             </Text>
           </Animated.View>
         </ScrollView>
