@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, Camera, RotateCcw, Sparkles } from 'lucide-react-native';
 import Animated, {
   FadeIn,
@@ -45,6 +46,17 @@ export default function ScannerScreen() {
   const addAction = useHistoryStore((s) => s.addAction);
   const language = useSettingsStore((s) => s.language);
   const { requirePremium } = usePremium();
+
+  // Reset scanner state when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reset to ready state when returning to this screen
+      setScanState('ready');
+      setCapturedImage(null);
+      setErrorMessage('');
+      setAnalysisStep('');
+    }, [])
+  );
 
   // Animations
   const scanLinePosition = useSharedValue(0);
