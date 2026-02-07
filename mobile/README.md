@@ -38,6 +38,20 @@ MonAdmin est une application mobile conçue pour aider les personnes âgées à 
 ### Mode vocal
 - Interface vocale pour poser des questions
 - Commandes comme "Lis-moi mon dernier courrier"
+- Support multilingue (français, anglais, espagnol)
+
+### Multilingue
+L'application supporte plusieurs langues :
+- **Français** (par défaut)
+- **English (US)**
+- **Español**
+
+Toutes les fonctionnalités sont traduites dans la langue choisie :
+- Interface utilisateur complète
+- Analyse IA des documents (titre, explication, actions)
+- Lecture vocale (synthèse vocale)
+- Commandes vocales
+- Génération de réponses aux courriers
 
 ### Pages légales et aide
 - **FAQ** : Questions fréquentes organisées par catégorie avec accordéons interactifs

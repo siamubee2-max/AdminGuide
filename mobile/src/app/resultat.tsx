@@ -25,7 +25,7 @@ import { ScheduledReminder } from '@/lib/services/notification-service';
 import { ShareDocumentModal } from '@/components/ShareDocumentModal';
 import { useFamilyStore } from '@/lib/state/family-store';
 import { usePremium } from '@/lib/hooks/usePremium';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, getSpeechLanguageCode } from '@/lib/i18n';
 
 type ReadMode = 'resume' | 'complet';
 
@@ -75,6 +75,7 @@ export default function ResultatScreen() {
   const profile = useSettingsStore((s) => s.profile);
   const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
   const rappelsJoursAvant = useSettingsStore((s) => s.rappelsJoursAvant);
+  const language = useSettingsStore((s) => s.language);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [readMode, setReadMode] = useState<ReadMode>('complet');
@@ -188,7 +189,7 @@ export default function ResultatScreen() {
       }
 
       Speech.speak(textToRead, {
-        language: 'fr-FR',
+        language: getSpeechLanguageCode(language),
         rate: getVoiceRate(vitesseVocale),
         onDone: () => setIsSpeaking(false),
         onStopped: () => setIsSpeaking(false),
@@ -222,7 +223,7 @@ export default function ResultatScreen() {
         prenom: profile.prenom,
         nom: profile.nom,
         adresse: profile.adresse,
-      });
+      }, language);
       setGeneratedResponse(response);
 
       // Track response generation

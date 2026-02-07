@@ -21,6 +21,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import { useDocumentStore } from '@/lib/state/document-store';
 import { useHistoryStore } from '@/lib/state/history-store';
+import { useSettingsStore } from '@/lib/state/settings-store';
 import { analyzeDocumentWithAI } from '@/lib/services/ai-service';
 import { Document, URGENCE_STYLES } from '@/lib/types';
 import { usePremium } from '@/lib/hooks/usePremium';
@@ -42,6 +43,7 @@ export default function ScannerScreen() {
   const addDocument = useDocumentStore((s) => s.addDocument);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const addAction = useHistoryStore((s) => s.addAction);
+  const language = useSettingsStore((s) => s.language);
   const { requirePremium } = usePremium();
 
   // Animations
@@ -150,7 +152,7 @@ export default function ScannerScreen() {
 
       // Call AI analysis
       setAnalysisStep(t('scanner.step_understanding'));
-      const analysis = await analyzeDocumentWithAI(imageBase64, capturedImage);
+      const analysis = await analyzeDocumentWithAI(imageBase64, capturedImage, language);
 
       setAnalysisStep(t('scanner.step_preparing'));
       

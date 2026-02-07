@@ -1,4 +1,6 @@
 import { Document, UrgenceLevel, DocumentCategory } from '../types';
+import type { Language } from '../i18n/translations';
+import { getLanguageName } from '../i18n';
 
 const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
@@ -23,7 +25,7 @@ interface GeneratedResponse {
   signature: string;
 }
 
-const SYSTEM_PROMPT_ANALYSE = `Tu es MonAdmin, un assistant administratif bienveillant pour seniors français.
+const SYSTEM_PROMPT_ANALYSE = `Tu es MonAdmin, un assistant administratif bienveillant.
 Tu analyses des documents administratifs et les expliques simplement.
 
 Règles importantes:
@@ -53,6 +55,46 @@ Critères d'urgence:
 - orange: Action requise cette semaine ou dans les 15 jours
 - rouge: Urgent, action immédiate requise, date limite proche (< 7 jours)`;
 
+function getSystemPromptAnalyse(language: Language): string {
+  const langName = getLanguageName(language);
+
+  if (language === 'fr') {
+    return SYSTEM_PROMPT_ANALYSE;
+  }
+
+  return `You are MonAdmin, a friendly administrative assistant.
+You analyze administrative documents and explain them simply.
+
+IMPORTANT: You MUST respond in ${langName}. All text fields (titre, explication, action, urgenceLabel, type) MUST be in ${langName}.
+
+Important rules:
+- Speak simply, like to a friend
+- Maximum 3 sentences to explain
+- Use everyday words (no administrative jargon)
+- Be reassuring, never alarmist
+- Always indicate the concrete action to take
+
+Respond ONLY in valid JSON with this exact structure:
+{
+  "type": "Invoice|Letter|Summons|Certificate|Information|Statement|Contract|Other",
+  "organisme": "Name of the organization",
+  "titre": "Short title of the document in ${langName}",
+  "categorie": "sante|energie|pension|banque|tous",
+  "urgence": "vert|orange|rouge",
+  "urgenceLabel": "Not urgent|This week|Urgent (translate to ${langName})",
+  "montant": "Amount if applicable or null",
+  "dateLimite": "Deadline if applicable or null",
+  "explication": "Simple explanation in 2-3 sentences in ${langName}",
+  "action": "What the person should do concretely in ${langName}",
+  "contenuBrut": "Complete and faithful transcription of the visible text on the document, word for word, keeping the structure."
+}
+
+Urgency criteria:
+- vert: Information, nothing to do, keep it
+- orange: Action required this week or within 15 days
+- rouge: Urgent, immediate action required, deadline close (< 7 days)`;
+}
+
 const SYSTEM_PROMPT_REPONSE = `Tu es MonAdmin, un assistant qui aide les seniors à rédiger des réponses aux courriers administratifs.
 Rédige une lettre de réponse formelle mais accessible.
 Le ton doit être poli et professionnel.
@@ -65,22 +107,50 @@ Réponds en JSON avec cette structure:
   "signature": "Formule de politesse"
 }`;
 
+function getSystemPromptReponse(language: Language): string {
+  const langName = getLanguageName(language);
+
+  if (language === 'fr') {
+    return SYSTEM_PROMPT_REPONSE;
+  }
+
+  return `You are MonAdmin, an assistant that helps seniors write responses to administrative letters.
+Write a formal but accessible response letter.
+The tone should be polite and professional.
+Use simple language that everyone can understand.
+
+IMPORTANT: Write the entire response in ${langName}.
+
+Respond in JSON with this structure:
+{
+  "objet": "Subject of the letter in ${langName}",
+  "corps": "Body of the letter with paragraphs in ${langName}",
+  "signature": "Polite closing formula in ${langName}"
+}`;
+}
+
 export async function analyzeDocumentWithAI(
   imageBase64: string,
-  imageUri: string
+  imageUri: string,
+  language: Language = 'fr'
 ): Promise<AnalysisResult> {
   // Try Anthropic first, then OpenAI
   if (ANTHROPIC_API_KEY) {
-    return analyzeWithClaude(imageBase64);
+    return analyzeWithClaude(imageBase64, language);
   } else if (OPENAI_API_KEY) {
-    return analyzeWithOpenAI(imageBase64);
+    return analyzeWithOpenAI(imageBase64, language);
   } else {
     // Fallback to mock analysis
-    return mockAnalysis();
+    return mockAnalysis(language);
   }
 }
 
-async function analyzeWithClaude(imageBase64: string): Promise<AnalysisResult> {
+async function analyzeWithClaude(imageBase64: string, language: Language): Promise<AnalysisResult> {
+  const langName = getLanguageName(language);
+  const userPrompt = language === 'fr'
+    ? 'Analyse ce document administratif et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.'
+    : `Analyze this administrative document and provide the requested information in ${langName}. Include the complete transcription of visible text in the contenuBrut field.`;
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -106,12 +176,12 @@ async function analyzeWithClaude(imageBase64: string): Promise<AnalysisResult> {
               },
               {
                 type: 'text',
-                text: 'Analyse ce document administratif français et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.',
+                text: userPrompt,
               },
             ],
           },
         ],
-        system: SYSTEM_PROMPT_ANALYSE,
+        system: getSystemPromptAnalyse(language),
       }),
     });
 
@@ -121,21 +191,26 @@ async function analyzeWithClaude(imageBase64: string): Promise<AnalysisResult> {
 
     const data = await response.json();
     const content = data.content[0]?.text || '';
-    
+
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]) as AnalysisResult;
     }
-    
+
     throw new Error('Invalid response format');
   } catch (error) {
     console.error('Claude analysis error:', error);
-    return mockAnalysis();
+    return mockAnalysis(language);
   }
 }
 
-async function analyzeWithOpenAI(imageBase64: string): Promise<AnalysisResult> {
+async function analyzeWithOpenAI(imageBase64: string, language: Language): Promise<AnalysisResult> {
+  const langName = getLanguageName(language);
+  const userPrompt = language === 'fr'
+    ? 'Analyse ce document administratif et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.'
+    : `Analyze this administrative document and provide the requested information in ${langName}. Include the complete transcription of visible text in the contenuBrut field.`;
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -148,7 +223,7 @@ async function analyzeWithOpenAI(imageBase64: string): Promise<AnalysisResult> {
         messages: [
           {
             role: 'system',
-            content: SYSTEM_PROMPT_ANALYSE,
+            content: getSystemPromptAnalyse(language),
           },
           {
             role: 'user',
@@ -161,7 +236,7 @@ async function analyzeWithOpenAI(imageBase64: string): Promise<AnalysisResult> {
               },
               {
                 type: 'text',
-                text: 'Analyse ce document administratif français et fournis les informations demandées. Inclus la transcription complète du texte visible dans le champ contenuBrut.',
+                text: userPrompt,
               },
             ],
           },
@@ -176,56 +251,115 @@ async function analyzeWithOpenAI(imageBase64: string): Promise<AnalysisResult> {
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content || '';
-    
+
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]) as AnalysisResult;
     }
-    
+
     throw new Error('Invalid response format');
   } catch (error) {
     console.error('OpenAI analysis error:', error);
-    return mockAnalysis();
+    return mockAnalysis(language);
   }
 }
 
-function mockAnalysis(): AnalysisResult {
-  // Réponse simulée pour le développement
-  const mockTypes = [
-    {
-      type: 'Facture',
-      organisme: 'Engie',
-      titre: 'Facture de régularisation',
-      categorie: 'energie' as DocumentCategory,
-      urgence: 'orange' as UrgenceLevel,
-      urgenceLabel: 'Cette semaine',
-      montant: '89,50€',
-      dateLimite: '25 janvier 2026',
-      explication: "C'est votre facture de régularisation pour l'électricité. Le montant tient compte de votre consommation réelle. Vous devez payer 89,50€.",
-      action: 'Payer 89,50€ avant le 25 janvier par virement ou prélèvement',
-      contenuBrut: "ENGIE\nService Clients\n\nFacture de régularisation\nRéférence client : 1234567890\nDate : 10 janvier 2026\n\nMadame, Monsieur,\n\nSuite au relevé de votre compteur effectué le 5 janvier 2026, nous avons procédé à la régularisation de votre consommation d'électricité.\n\nDétail de la facture :\n- Consommation estimée : 72,00€\n- Consommation réelle : 89,50€\n- Montant à régulariser : 17,50€\n\nMontant total dû : 89,50€\nDate limite de paiement : 25 janvier 2026\n\nVous pouvez régler cette facture par prélèvement automatique, virement bancaire ou chèque.\n\nCordialement,\nLe Service Clients ENGIE",
-    },
-    {
-      type: 'Courrier',
-      organisme: 'Mutuelle Santé',
-      titre: 'Remboursement soins',
-      categorie: 'sante' as DocumentCategory,
-      urgence: 'vert' as UrgenceLevel,
-      urgenceLabel: 'Pas urgent',
-      explication: "C'est le récapitulatif de vos remboursements de soins du mois dernier. Tout a été traité correctement.",
-      action: 'Rien à faire, à conserver pour vos archives',
-      contenuBrut: "MUTUELLE SANTÉ PLUS\nVotre relevé de remboursements\n\nPériode : Décembre 2025\nNuméro adhérent : MS-987654\n\nChère adhérente,\n\nVeuillez trouver ci-dessous le récapitulatif de vos remboursements pour le mois de décembre 2025.\n\nConsultation Dr Martin (12/12/2025) :\n- Montant : 25,00€\n- Sécurité sociale : 17,50€\n- Part mutuelle : 7,50€\n\nPharmacie (15/12/2025) :\n- Montant : 12,80€\n- Sécurité sociale : 8,96€\n- Part mutuelle : 3,84€\n\nTotal remboursé : 11,34€\nVirement effectué le 28/12/2025\n\nCordialement,\nMutuelle Santé Plus",
-    },
-  ];
-  
-  return mockTypes[Math.floor(Math.random() * mockTypes.length)];
+function mockAnalysis(language: Language = 'fr'): AnalysisResult {
+  // Mock responses per language
+  const mockData: Record<Language, AnalysisResult[]> = {
+    fr: [
+      {
+        type: 'Facture',
+        organisme: 'Engie',
+        titre: 'Facture de régularisation',
+        categorie: 'energie' as DocumentCategory,
+        urgence: 'orange' as UrgenceLevel,
+        urgenceLabel: 'Cette semaine',
+        montant: '89,50€',
+        dateLimite: '25 janvier 2026',
+        explication: "C'est votre facture de régularisation pour l'électricité. Le montant tient compte de votre consommation réelle. Vous devez payer 89,50€.",
+        action: 'Payer 89,50€ avant le 25 janvier par virement ou prélèvement',
+        contenuBrut: "ENGIE\nService Clients\n\nFacture de régularisation\nRéférence client : 1234567890\nDate : 10 janvier 2026",
+      },
+      {
+        type: 'Courrier',
+        organisme: 'Mutuelle Santé',
+        titre: 'Remboursement soins',
+        categorie: 'sante' as DocumentCategory,
+        urgence: 'vert' as UrgenceLevel,
+        urgenceLabel: 'Pas urgent',
+        explication: "C'est le récapitulatif de vos remboursements de soins du mois dernier. Tout a été traité correctement.",
+        action: 'Rien à faire, à conserver pour vos archives',
+        contenuBrut: "MUTUELLE SANTÉ PLUS\nVotre relevé de remboursements\nPériode : Décembre 2025",
+      },
+    ],
+    en: [
+      {
+        type: 'Invoice',
+        organisme: 'Engie',
+        titre: 'Adjustment Invoice',
+        categorie: 'energie' as DocumentCategory,
+        urgence: 'orange' as UrgenceLevel,
+        urgenceLabel: 'This week',
+        montant: '€89.50',
+        dateLimite: 'January 25, 2026',
+        explication: "This is your electricity adjustment invoice. The amount reflects your actual consumption. You need to pay €89.50.",
+        action: 'Pay €89.50 before January 25 by transfer or direct debit',
+        contenuBrut: "ENGIE\nCustomer Service\n\nAdjustment Invoice\nClient reference: 1234567890\nDate: January 10, 2026",
+      },
+      {
+        type: 'Letter',
+        organisme: 'Health Insurance',
+        titre: 'Healthcare Reimbursement',
+        categorie: 'sante' as DocumentCategory,
+        urgence: 'vert' as UrgenceLevel,
+        urgenceLabel: 'Not urgent',
+        explication: "This is the summary of your healthcare reimbursements from last month. Everything has been processed correctly.",
+        action: 'Nothing to do, keep for your records',
+        contenuBrut: "HEALTH INSURANCE PLUS\nYour reimbursement statement\nPeriod: December 2025",
+      },
+    ],
+    es: [
+      {
+        type: 'Factura',
+        organisme: 'Engie',
+        titre: 'Factura de regularización',
+        categorie: 'energie' as DocumentCategory,
+        urgence: 'orange' as UrgenceLevel,
+        urgenceLabel: 'Esta semana',
+        montant: '89,50€',
+        dateLimite: '25 de enero de 2026',
+        explication: "Esta es su factura de regularización de electricidad. El importe refleja su consumo real. Debe pagar 89,50€.",
+        action: 'Pagar 89,50€ antes del 25 de enero por transferencia o domiciliación',
+        contenuBrut: "ENGIE\nServicio al Cliente\n\nFactura de regularización\nReferencia cliente: 1234567890\nFecha: 10 de enero de 2026",
+      },
+      {
+        type: 'Carta',
+        organisme: 'Mutua de Salud',
+        titre: 'Reembolso de atención médica',
+        categorie: 'sante' as DocumentCategory,
+        urgence: 'vert' as UrgenceLevel,
+        urgenceLabel: 'No urgente',
+        explication: "Este es el resumen de sus reembolsos de atención médica del mes pasado. Todo se ha procesado correctamente.",
+        action: 'Nada que hacer, guardar para sus archivos',
+        contenuBrut: "MUTUA DE SALUD PLUS\nSu extracto de reembolsos\nPeríodo: Diciembre 2025",
+      },
+    ],
+  };
+
+  const mocks = mockData[language] || mockData.fr;
+  return mocks[Math.floor(Math.random() * mocks.length)];
 }
 
 export async function generateResponseWithAI(
   document: Document,
-  userInfo: { prenom: string; nom: string; adresse: string }
+  userInfo: { prenom: string; nom: string; adresse: string },
+  language: Language = 'fr'
 ): Promise<GeneratedResponse> {
-  const prompt = `Contexte du document:
+  const langName = getLanguageName(language);
+
+  const prompt = language === 'fr'
+    ? `Contexte du document:
 - Type: ${document.type}
 - Organisme: ${document.organisme}
 - Titre: ${document.titre}
@@ -237,7 +371,20 @@ Informations de l'utilisateur:
 - Nom: ${userInfo.prenom} ${userInfo.nom}
 - Adresse: ${userInfo.adresse}
 
-Rédige une lettre de réponse appropriée.`;
+Rédige une lettre de réponse appropriée.`
+    : `Document context:
+- Type: ${document.type}
+- Organization: ${document.organisme}
+- Title: ${document.titre}
+- Required action: ${document.action}
+${document.montant ? `- Amount: ${document.montant}` : ''}
+${document.dateLimite ? `- Deadline: ${document.dateLimite}` : ''}
+
+User information:
+- Name: ${userInfo.prenom} ${userInfo.nom}
+- Address: ${userInfo.adresse}
+
+Write an appropriate response letter in ${langName}.`;
 
   if (ANTHROPIC_API_KEY) {
     try {
@@ -251,7 +398,7 @@ Rédige une lettre de réponse appropriée.`;
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          system: SYSTEM_PROMPT_REPONSE,
+          system: getSystemPromptReponse(language),
           messages: [{ role: 'user', content: prompt }],
         }),
       });
@@ -269,93 +416,216 @@ Rédige une lettre de réponse appropriée.`;
     }
   }
 
-  // Fallback response
-  return {
-    objet: `Réponse à votre courrier - ${document.titre}`,
-    corps: `Madame, Monsieur,
+  // Fallback responses per language
+  const fallbackResponses: Record<Language, GeneratedResponse> = {
+    fr: {
+      objet: `Réponse à votre courrier - ${document.titre}`,
+      corps: `Madame, Monsieur,
 
 Je fais suite à votre courrier concernant ${document.titre.toLowerCase()}.
 
-${document.action.includes('Payer') 
-  ? `Je vous informe que je procéderai au règlement dans les délais impartis.`
-  : `J'ai bien pris note des informations communiquées.`}
+${document.action.toLowerCase().includes('payer')
+        ? `Je vous informe que je procéderai au règlement dans les délais impartis.`
+        : `J'ai bien pris note des informations communiquées.`}
 
 Je reste à votre disposition pour tout renseignement complémentaire.`,
-    signature: `Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+      signature: `Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
 
 ${userInfo.prenom} ${userInfo.nom}`,
+    },
+    en: {
+      objet: `Response to your letter - ${document.titre}`,
+      corps: `Dear Sir or Madam,
+
+I am writing in response to your letter regarding ${document.titre.toLowerCase()}.
+
+${document.action.toLowerCase().includes('pay')
+        ? `I would like to inform you that I will proceed with the payment within the specified timeframe.`
+        : `I have taken note of the information provided.`}
+
+Please do not hesitate to contact me if you require any further information.`,
+      signature: `Yours faithfully,
+
+${userInfo.prenom} ${userInfo.nom}`,
+    },
+    es: {
+      objet: `Respuesta a su carta - ${document.titre}`,
+      corps: `Estimados señores,
+
+Me dirijo a ustedes en respuesta a su carta sobre ${document.titre.toLowerCase()}.
+
+${document.action.toLowerCase().includes('pagar')
+        ? `Les informo que procederé al pago dentro del plazo establecido.`
+        : `He tomado nota de la información proporcionada.`}
+
+Quedo a su disposición para cualquier información adicional.`,
+      signature: `Atentamente,
+
+${userInfo.prenom} ${userInfo.nom}`,
+    },
   };
+
+  return fallbackResponses[language] || fallbackResponses.fr;
 }
 
 export async function processVoiceCommand(
   transcription: string,
-  context: { documentsCount: number; currentPage: string }
+  context: { documentsCount: number; currentPage: string },
+  language: Language = 'fr'
 ): Promise<{
   intention: string;
   reponse: string;
   action?: { type: string; cible?: string };
 }> {
   const text = transcription.toLowerCase().trim();
-  
-  // Commandes simples basées sur des patterns
-  if (text.includes('scanner') || text.includes('photo') || text.includes('prendre')) {
+
+  // Patterns by language
+  const patterns: Record<Language, {
+    scanner: string[];
+    read: string[];
+    recent: string[];
+    search: string[];
+    actions: string[];
+    help: string[];
+    call: string[];
+    greeting: string[];
+  }> = {
+    fr: {
+      scanner: ['scanner', 'photo', 'prendre'],
+      read: ['lis', 'lire'],
+      recent: ['dernier', 'récent', 'nouveau'],
+      search: ['où', 'trouve', 'cherche'],
+      actions: ['faire', 'attente', 'urgent', 'semaine'],
+      help: ['aide', 'comment'],
+      call: ['appel', 'téléphone', 'famille'],
+      greeting: ['bonjour', 'salut', 'coucou'],
+    },
+    en: {
+      scanner: ['scan', 'photo', 'take', 'capture'],
+      read: ['read', 'tell'],
+      recent: ['last', 'recent', 'latest', 'new'],
+      search: ['where', 'find', 'search', 'look'],
+      actions: ['do', 'pending', 'urgent', 'week'],
+      help: ['help', 'how'],
+      call: ['call', 'phone', 'family'],
+      greeting: ['hello', 'hi', 'hey'],
+    },
+    es: {
+      scanner: ['escanear', 'foto', 'tomar', 'capturar'],
+      read: ['lee', 'leer', 'dime'],
+      recent: ['último', 'reciente', 'nuevo'],
+      search: ['dónde', 'encuentra', 'busca', 'buscar'],
+      actions: ['hacer', 'pendiente', 'urgente', 'semana'],
+      help: ['ayuda', 'cómo'],
+      call: ['llamar', 'teléfono', 'familia'],
+      greeting: ['hola', 'buenos días'],
+    },
+  };
+
+  // Responses by language
+  const responses: Record<Language, {
+    scanner: string;
+    readLast: string;
+    search: string;
+    actions: (count: number) => string;
+    help: string;
+    call: string;
+    greeting: string;
+    unknown: string;
+  }> = {
+    fr: {
+      scanner: "D'accord, je vous emmène au scanner.",
+      readLast: 'Je vais vous lire votre dernier courrier.',
+      search: 'Je recherche dans vos documents...',
+      actions: (count) => `Vous avez ${count} documents à traiter.`,
+      help: "Je peux scanner vos courriers, vous les expliquer et vous aider à répondre. Dites par exemple : scanner un courrier, ou lis-moi mon dernier courrier.",
+      call: 'Je prépare un appel vers votre aidant.',
+      greeting: "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+      unknown: "Je n'ai pas bien compris. Vous pouvez me demander de scanner un courrier, de lire vos documents ou de chercher une facture.",
+    },
+    en: {
+      scanner: "Alright, I'll take you to the scanner.",
+      readLast: "I'll read your latest letter to you.",
+      search: 'Searching through your documents...',
+      actions: (count) => `You have ${count} documents to process.`,
+      help: "I can scan your letters, explain them to you, and help you respond. For example, say: scan a letter, or read me my latest letter.",
+      call: "I'm preparing a call to your helper.",
+      greeting: 'Hello! How can I help you today?',
+      unknown: "I didn't quite understand. You can ask me to scan a letter, read your documents, or search for an invoice.",
+    },
+    es: {
+      scanner: 'De acuerdo, te llevo al escáner.',
+      readLast: 'Voy a leerte tu última carta.',
+      search: 'Buscando en tus documentos...',
+      actions: (count) => `Tienes ${count} documentos por procesar.`,
+      help: 'Puedo escanear tus cartas, explicártelas y ayudarte a responder. Por ejemplo, di: escanear una carta, o léeme mi última carta.',
+      call: 'Estoy preparando una llamada a tu ayudante.',
+      greeting: '¡Hola! ¿Cómo puedo ayudarte hoy?',
+      unknown: 'No entendí bien. Puedes pedirme que escanee una carta, lea tus documentos o busque una factura.',
+    },
+  };
+
+  const p = patterns[language] || patterns.fr;
+  const r = responses[language] || responses.fr;
+
+  // Check patterns
+  if (p.scanner.some((word) => text.includes(word))) {
     return {
       intention: 'scanner',
-      reponse: "D'accord, je vous emmène au scanner.",
+      reponse: r.scanner,
       action: { type: 'navigation', cible: 'scanner' },
     };
   }
-  
-  if ((text.includes('lis') || text.includes('lire')) && 
-      (text.includes('dernier') || text.includes('récent') || text.includes('nouveau'))) {
+
+  if (p.read.some((word) => text.includes(word)) && p.recent.some((word) => text.includes(word))) {
     return {
       intention: 'lire_dernier',
-      reponse: 'Je vais vous lire votre dernier courrier.',
+      reponse: r.readLast,
       action: { type: 'lire_document', cible: 'dernier' },
     };
   }
-  
-  if (text.includes('où') || text.includes('trouve') || text.includes('cherche')) {
+
+  if (p.search.some((word) => text.includes(word))) {
     return {
       intention: 'rechercher',
-      reponse: 'Je recherche dans vos documents...',
+      reponse: r.search,
       action: { type: 'recherche' },
     };
   }
-  
-  if (text.includes('faire') || text.includes('attente') || text.includes('urgent') || text.includes('semaine')) {
+
+  if (p.actions.some((word) => text.includes(word))) {
     return {
       intention: 'actions_attente',
-      reponse: `Vous avez ${context.documentsCount} documents à traiter.`,
+      reponse: r.actions(context.documentsCount),
       action: { type: 'lister_actions' },
     };
   }
-  
-  if (text.includes('aide') || text.includes('comment')) {
+
+  if (p.help.some((word) => text.includes(word))) {
     return {
       intention: 'aide',
-      reponse: "Je peux scanner vos courriers, vous les expliquer et vous aider à répondre. Dites par exemple : scanner un courrier, ou lis-moi mon dernier courrier.",
+      reponse: r.help,
     };
   }
-  
-  if (text.includes('appel') || text.includes('téléphone') || text.includes('famille')) {
+
+  if (p.call.some((word) => text.includes(word))) {
     return {
       intention: 'appeler',
-      reponse: 'Je prépare un appel vers votre aidant.',
+      reponse: r.call,
       action: { type: 'appeler', cible: 'aidant' },
     };
   }
-  
-  if (text.includes('bonjour') || text.includes('salut') || text.includes('coucou')) {
+
+  if (p.greeting.some((word) => text.includes(word))) {
     return {
       intention: 'salutation',
-      reponse: 'Bonjour ! Comment puis-je vous aider aujourd\'hui ?',
+      reponse: r.greeting,
     };
   }
-  
-  // Par défaut
+
+  // Default
   return {
     intention: 'incompris',
-    reponse: "Je n'ai pas bien compris. Vous pouvez me demander de scanner un courrier, de lire vos documents ou de chercher une facture.",
+    reponse: r.unknown,
   };
 }
