@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import {
   ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen,
   Calendar, Wallet, CheckCircle2, X, Copy, Bell, BellOff, Trash2, Share2, Users,
-  Play, Square, BookOpen
+  Play, Square, BookOpen, Camera
 } from 'lucide-react-native';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn,
@@ -733,6 +733,20 @@ export default function ResultatScreen() {
               <FolderOpen size={24} color="#6B7280" />
               <Text className="text-xl ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#374151' }}>
                 {t('result.archive')}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/(tabs)/scanner');
+              }}
+              className="rounded-3xl py-5 flex-row items-center justify-center active:scale-[0.98]"
+              style={{ backgroundColor: '#F3F4F6' }}
+            >
+              <Camera size={24} color="#6B7280" />
+              <Text className="text-xl ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#374151' }}>
+                {t('result.scan_another')}
               </Text>
             </Pressable>
           </Animated.View>
