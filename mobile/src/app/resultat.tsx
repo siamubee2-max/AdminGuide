@@ -78,7 +78,7 @@ export default function ResultatScreen() {
   const language = useSettingsStore((s) => s.language);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [readMode, setReadMode] = useState<ReadMode>('complet');
+  const [readMode, setReadMode] = useState<ReadMode>('resume');
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [generatedResponse, setGeneratedResponse] = useState<{
