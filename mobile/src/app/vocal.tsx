@@ -24,7 +24,7 @@ import { useSettingsStore, getVoiceRate } from '@/lib/state/settings-store';
 import { useHistoryStore } from '@/lib/state/history-store';
 import { processVoiceCommand } from '@/lib/services/ai-service';
 import { usePremium } from '@/lib/hooks/usePremium';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, getSpeechLanguageCode } from '@/lib/i18n';
 
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking';
 
@@ -41,6 +41,7 @@ export default function VocalScreen() {
   const documents = useDocumentStore((s) => s.documents);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
+  const language = useSettingsStore((s) => s.language);
   const { requirePremium } = usePremium();
   const volumeVocal = useSettingsStore((s) => s.volumeVocal);
   const addAction = useHistoryStore((s) => s.addAction);
@@ -136,16 +137,16 @@ export default function VocalScreen() {
   const speak = useCallback(async (text: string) => {
     setVoiceState('speaking');
     setResponse(text);
-    
+
     await Speech.speak(text, {
-      language: 'fr-FR',
+      language: getSpeechLanguageCode(language),
       rate: getVoiceRate(vitesseVocale),
       volume: volumeVocal / 100,
       onDone: () => setVoiceState('idle'),
       onStopped: () => setVoiceState('idle'),
       onError: () => setVoiceState('idle'),
     });
-  }, [vitesseVocale, volumeVocal]);
+  }, [vitesseVocale, volumeVocal, language]);
 
   const handleVoiceCommand = useCallback(async (text: string) => {
     setVoiceState('processing');
@@ -164,7 +165,7 @@ export default function VocalScreen() {
       const result = await processVoiceCommand(text, {
         documentsCount: documents.length,
         currentPage: 'vocal',
-      });
+      }, language);
       
       // Add assistant response to history
       setConversationHistory((prev) => [...prev, { type: 'assistant', text: result.reponse }]);
