@@ -1,9 +1,26 @@
-import React from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { X, Check, Crown, FileText, Volume2, Zap, Shield } from 'lucide-react-native';
+import {
+  X,
+  Check,
+  Crown,
+  FileText,
+  Volume2,
+  Zap,
+  Shield,
+  Users,
+  Bell,
+  Download,
+  Headphones,
+  Sparkles,
+  Search,
+  Globe,
+  Clock,
+  Star,
+} from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,21 +29,57 @@ import {
   purchasePackage,
   restorePurchases,
   hasEntitlement,
+  getPackage,
 } from '@/lib/revenuecatClient';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { useTranslation } from '@/lib/i18n';
+import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
+
+type PlanId = 'free' | 'essential' | 'family';
+type BillingPeriod = 'monthly' | 'annual';
+
+interface PlanFeature {
+  text: string;
+  included: boolean;
+  highlight?: boolean;
+}
+
+interface Plan {
+  id: PlanId;
+  name: string;
+  tagline: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  annualSavings: string;
+  features: PlanFeature[];
+  color: string;
+  gradientColors: [string, string];
+  icon: any;
+  popular?: boolean;
+  entitlement: string;
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function PremiumScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const t = useTranslation();
+  const display = useDisplaySettings();
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('essential');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
 
-  // Check if user already has premium
-  const { data: isPremium, isLoading: checkingPremium } = useQuery({
-    queryKey: ['premium-status'],
+  // Check current entitlements
+  const { data: currentPlan, isLoading: checkingPremium } = useQuery({
+    queryKey: ['premium-status-detailed'],
     queryFn: async () => {
-      const result = await hasEntitlement('premium');
-      return result.ok ? result.data : false;
+      const familyResult = await hasEntitlement('family');
+      if (familyResult.ok && familyResult.data) return 'family';
+
+      const essentialResult = await hasEntitlement('premium');
+      if (essentialResult.ok && essentialResult.data) return 'essential';
+
+      return 'free';
     },
   });
 
@@ -51,6 +104,7 @@ export default function PremiumScreen() {
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['premium-status'] });
+      queryClient.invalidateQueries({ queryKey: ['premium-status-detailed'] });
     },
     onError: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -69,17 +123,102 @@ export default function PremiumScreen() {
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['premium-status'] });
+      queryClient.invalidateQueries({ queryKey: ['premium-status-detailed'] });
     },
   });
 
-  const monthlyPackage = offerings?.current?.availablePackages.find(
-    (pkg) => pkg.identifier === '$rc_monthly'
-  );
+  const plans: Plan[] = [
+    {
+      id: 'free',
+      name: 'Découverte',
+      tagline: 'Pour essayer gratuitement',
+      monthlyPrice: 0,
+      annualPrice: 0,
+      annualSavings: '',
+      entitlement: 'free',
+      color: '#6B7280',
+      gradientColors: ['#F3F4F6', '#E5E7EB'],
+      icon: Sparkles,
+      features: [
+        { text: '3 scans par mois', included: true },
+        { text: 'Résumé simplifié basique', included: true },
+        { text: '1 catégorie de document', included: true },
+        { text: 'Historique 3 jours', included: true },
+        { text: 'Interface senior-friendly', included: true },
+        { text: 'Lecture vocale', included: false },
+        { text: 'Partage familial', included: false },
+      ],
+    },
+    {
+      id: 'essential',
+      name: 'Essentiel',
+      tagline: 'Le plus populaire',
+      monthlyPrice: 6.99,
+      annualPrice: 39.99,
+      annualSavings: '2 mois offerts',
+      entitlement: 'premium',
+      color: '#2563EB',
+      gradientColors: ['#1E40AF', '#3B82F6'],
+      icon: Crown,
+      popular: true,
+      features: [
+        { text: '15 scans par mois', included: true, highlight: true },
+        { text: 'Analyse IA complète', included: true, highlight: true },
+        { text: 'Lecture vocale illimitée', included: true, highlight: true },
+        { text: 'Toutes les catégories', included: true },
+        { text: 'Historique illimité', included: true },
+        { text: 'Recherche textuelle & vocale', included: true },
+        { text: 'Support multilingue', included: true },
+        { text: 'Partage familial', included: false },
+      ],
+    },
+    {
+      id: 'family',
+      name: 'Famille',
+      tagline: 'Tranquillité d\'esprit',
+      monthlyPrice: 9.99,
+      annualPrice: 74.99,
+      annualSavings: '3 mois offerts',
+      entitlement: 'family',
+      color: '#059669',
+      gradientColors: ['#047857', '#10B981'],
+      icon: Users,
+      features: [
+        { text: 'Scans illimités', included: true, highlight: true },
+        { text: 'Tout de Essentiel +', included: true },
+        { text: 'Partage familial (5 membres)', included: true, highlight: true },
+        { text: 'Alertes aidants (urgences)', included: true, highlight: true },
+        { text: 'Réponses auto aux courriers', included: true, highlight: true },
+        { text: 'Rappels d\'échéances', included: true },
+        { text: 'Export PDF', included: true },
+        { text: 'Support prioritaire', included: true },
+      ],
+    },
+  ];
 
-  const handlePurchase = () => {
-    if (monthlyPackage) {
+  const getPackageForPlan = (planId: PlanId): PurchasesPackage | undefined => {
+    if (!offerings?.current) return undefined;
+
+    const packageMap: Record<string, string> = {
+      essential_monthly: '$rc_monthly',
+      essential_annual: '$rc_annual',
+      family_monthly: '$rc_family_monthly',
+      family_annual: '$rc_family_annual',
+    };
+
+    const key = `${planId}_${billingPeriod}`;
+    const pkgId = packageMap[key];
+
+    return offerings.current.availablePackages.find(p => p.identifier === pkgId);
+  };
+
+  const handlePurchase = (planId: PlanId) => {
+    if (planId === 'free') return;
+
+    const pkg = getPackageForPlan(planId);
+    if (pkg) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      purchaseMutation.mutate(monthlyPackage);
+      purchaseMutation.mutate(pkg);
     }
   };
 
@@ -91,76 +230,45 @@ export default function PremiumScreen() {
   const isLoading = checkingPremium || loadingOfferings;
   const isPurchasing = purchaseMutation.isPending || restoreMutation.isPending;
 
-  const features = [
-    {
-      icon: FileText,
-      title: t('premium.feature1'),
-      description: t('premium.feature1_desc'),
-    },
-    {
-      icon: Volume2,
-      title: t('premium.feature2'),
-      description: t('premium.feature2_desc'),
-    },
-    {
-      icon: Zap,
-      title: t('premium.feature3'),
-      description: t('premium.feature3_desc'),
-    },
-    {
-      icon: Shield,
-      title: t('premium.feature4'),
-      description: t('premium.feature4_desc'),
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
-  }
-
-  // If already premium, show success state
-  if (isPremium) {
+  // If user has family plan, show success state
+  if (currentPlan === 'family') {
     return (
       <View className="flex-1">
         <LinearGradient
-          colors={['#FEF3C7', '#FDE68A', '#FCD34D']}
+          colors={['#047857', '#10B981', '#34D399']}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
           <View className="flex-1 items-center justify-center px-8">
             <Animated.View entering={FadeInUp.duration(600)}>
               <View className="w-32 h-32 rounded-full bg-white/80 items-center justify-center mb-6">
-                <Crown size={64} color="#F59E0B" />
+                <Users size={64} color="#059669" />
               </View>
             </Animated.View>
             <Animated.Text
               entering={FadeInUp.duration(600).delay(100)}
-              className="text-3xl text-amber-900 text-center mb-4"
+              className="text-3xl text-white text-center mb-4"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
-              {t('premium.already')}
+              Plan Famille actif !
             </Animated.Text>
             <Animated.Text
               entering={FadeInUp.duration(600).delay(200)}
-              className="text-lg text-amber-800 text-center mb-8"
+              className="text-lg text-emerald-100 text-center mb-8"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              {t('premium.already_msg')}
+              Profitez de toutes les fonctionnalités sans limite pour toute la famille.
             </Animated.Text>
             <Animated.View entering={FadeInUp.duration(600).delay(300)}>
               <Pressable
                 onPress={() => router.back()}
-                className="bg-amber-900 rounded-2xl px-8 py-4"
+                className="bg-white rounded-2xl px-8 py-4"
               >
                 <Text
-                  className="text-white text-lg"
+                  className="text-emerald-700 text-lg"
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
-                  {t('premium.continue')}
+                  Continuer
                 </Text>
               </Pressable>
             </Animated.View>
@@ -170,10 +278,86 @@ export default function PremiumScreen() {
     );
   }
 
+  // If user has essential plan
+  if (currentPlan === 'essential') {
+    return (
+      <View className="flex-1">
+        <LinearGradient
+          colors={['#1E40AF', '#2563EB', '#3B82F6']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+        <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+          <Pressable
+            onPress={() => router.back()}
+            className="absolute top-14 right-6 w-10 h-10 rounded-full bg-white/20 items-center justify-center z-10"
+          >
+            <X size={24} color="white" />
+          </Pressable>
+          <View className="flex-1 items-center justify-center px-8">
+            <Animated.View entering={FadeInUp.duration(600)}>
+              <View className="w-32 h-32 rounded-full bg-white/80 items-center justify-center mb-6">
+                <Crown size={64} color="#2563EB" />
+              </View>
+            </Animated.View>
+            <Animated.Text
+              entering={FadeInUp.duration(600).delay(100)}
+              className="text-3xl text-white text-center mb-4"
+              style={{ fontFamily: 'Nunito_800ExtraBold' }}
+            >
+              Plan Essentiel actif !
+            </Animated.Text>
+            <Animated.Text
+              entering={FadeInUp.duration(600).delay(200)}
+              className="text-lg text-blue-100 text-center mb-8"
+              style={{ fontFamily: 'Nunito_400Regular' }}
+            >
+              Passez au plan Famille pour le partage et les alertes aidants.
+            </Animated.Text>
+            <Animated.View entering={FadeInUp.duration(600).delay(300)} className="w-full">
+              <Pressable
+                onPress={() => {
+                  setSelectedPlan('family');
+                  handlePurchase('family');
+                }}
+                className="bg-emerald-500 rounded-2xl px-8 py-4 mb-4"
+              >
+                <Text
+                  className="text-white text-lg text-center"
+                  style={{ fontFamily: 'Nunito_700Bold' }}
+                >
+                  Passer au Plan Famille
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.back()}
+                className="py-3"
+              >
+                <Text
+                  className="text-blue-200 text-base text-center underline"
+                  style={{ fontFamily: 'Nunito_600SemiBold' }}
+                >
+                  Continuer avec Essentiel
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: display.colors.background }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
   return (
-    <View className="flex-1">
+    <View className="flex-1" style={{ backgroundColor: '#0F172A' }}>
       <LinearGradient
-        colors={['#1E3A8A', '#2563EB', '#3B82F6']}
+        colors={['#0F172A', '#1E293B', '#334155']}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
@@ -181,11 +365,12 @@ export default function PremiumScreen() {
         {/* Close button */}
         <Animated.View
           entering={FadeInDown.duration(400)}
-          className="px-6 pt-4 flex-row justify-end"
+          className="px-6 pt-4 flex-row justify-between items-center"
         >
+          <View />
           <Pressable
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
+            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
           >
             <X size={24} color="white" />
           </Pressable>
@@ -199,108 +384,247 @@ export default function PremiumScreen() {
           {/* Header */}
           <Animated.View
             entering={FadeInDown.duration(500).delay(100)}
-            className="items-center px-8 pt-4 pb-8"
+            className="items-center px-6 pt-2 pb-6"
           >
-            <View className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 items-center justify-center mb-6"
-              style={{ backgroundColor: '#F59E0B' }}
-            >
-              <Crown size={48} color="white" />
-            </View>
             <Text
-              className="text-3xl text-white text-center mb-3"
+              className="text-3xl text-white text-center mb-2"
               style={{ fontFamily: 'Nunito_800ExtraBold' }}
             >
-              {t('premium.title')}
+              Choisissez votre formule
             </Text>
             <Text
-              className="text-lg text-blue-100 text-center"
+              className="text-base text-slate-400 text-center"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              {t('premium.subtitle')}
+              Simplifiez l'admin de vos proches
             </Text>
           </Animated.View>
 
-          {/* Features */}
-          <View className="px-6 mb-8">
-            {features.map((feature, index) => (
-              <Animated.View
-                key={feature.title}
-                entering={FadeInUp.duration(400).delay(200 + index * 100)}
-                className="bg-white/10 rounded-2xl p-5 mb-3 flex-row items-center"
-              >
-                <View className="w-14 h-14 rounded-xl bg-white/20 items-center justify-center">
-                  <feature.icon size={28} color="white" />
-                </View>
-                <View className="flex-1 ml-4">
-                  <Text
-                    className="text-white text-lg"
-                    style={{ fontFamily: 'Nunito_700Bold' }}
-                  >
-                    {feature.title}
-                  </Text>
-                  <Text
-                    className="text-blue-200 text-sm mt-1"
-                    style={{ fontFamily: 'Nunito_400Regular' }}
-                  >
-                    {feature.description}
-                  </Text>
-                </View>
-                <Check size={24} color="#34D399" />
-              </Animated.View>
-            ))}
-          </View>
-
-          {/* Pricing card */}
+          {/* Billing toggle */}
           <Animated.View
-            entering={FadeInUp.duration(500).delay(600)}
+            entering={FadeInUp.duration(400).delay(200)}
             className="mx-6 mb-6"
           >
-            <View className="bg-white rounded-3xl p-6 overflow-hidden">
-              <View className="absolute top-0 right-0 bg-amber-500 px-4 py-1 rounded-bl-xl">
+            <View className="flex-row bg-slate-800 rounded-2xl p-1">
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setBillingPeriod('monthly');
+                }}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{
+                  backgroundColor: billingPeriod === 'monthly' ? '#3B82F6' : 'transparent',
+                }}
+              >
                 <Text
-                  className="text-white text-xs"
+                  style={{
+                    fontFamily: 'Nunito_600SemiBold',
+                    color: billingPeriod === 'monthly' ? 'white' : '#94A3B8',
+                  }}
+                >
+                  Mensuel
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setBillingPeriod('annual');
+                }}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{
+                  backgroundColor: billingPeriod === 'annual' ? '#3B82F6' : 'transparent',
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Text
+                    style={{
+                      fontFamily: 'Nunito_600SemiBold',
+                      color: billingPeriod === 'annual' ? 'white' : '#94A3B8',
+                    }}
+                  >
+                    Annuel
+                  </Text>
+                  <View className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500">
+                    <Text style={{ fontFamily: 'Nunito_700Bold', fontSize: 10, color: 'white' }}>
+                      -40%
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            </View>
+          </Animated.View>
+
+          {/* Plans */}
+          {plans.map((plan, index) => {
+            const isSelected = selectedPlan === plan.id;
+            const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
+            const perMonth = billingPeriod === 'annual' && plan.annualPrice > 0
+              ? (plan.annualPrice / 12).toFixed(2)
+              : null;
+
+            return (
+              <Animated.View
+                key={plan.id}
+                entering={FadeInUp.duration(400).delay(300 + index * 100)}
+                className="mx-6 mb-4"
+              >
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedPlan(plan.id);
+                  }}
+                  className="rounded-3xl overflow-hidden"
+                  style={{
+                    borderWidth: isSelected ? 3 : 1,
+                    borderColor: isSelected ? plan.color : '#334155',
+                    backgroundColor: isSelected ? '#1E293B' : '#0F172A',
+                  }}
+                >
+                  {plan.popular && (
+                    <LinearGradient
+                      colors={plan.gradientColors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      className="py-2 items-center"
+                    >
+                      <View className="flex-row items-center">
+                        <Star size={14} color="white" fill="white" />
+                        <Text
+                          className="text-white text-xs ml-1"
+                          style={{ fontFamily: 'Nunito_700Bold' }}
+                        >
+                          LE PLUS POPULAIRE
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                  )}
+
+                  <View className="p-5">
+                    {/* Plan header */}
+                    <View className="flex-row items-center justify-between mb-4">
+                      <View className="flex-row items-center">
+                        <View
+                          className="w-12 h-12 rounded-xl items-center justify-center"
+                          style={{ backgroundColor: `${plan.color}20` }}
+                        >
+                          <plan.icon size={24} color={plan.color} />
+                        </View>
+                        <View className="ml-3">
+                          <Text
+                            className="text-white text-xl"
+                            style={{ fontFamily: 'Nunito_700Bold' }}
+                          >
+                            {plan.name}
+                          </Text>
+                          <Text
+                            className="text-slate-400 text-sm"
+                            style={{ fontFamily: 'Nunito_400Regular' }}
+                          >
+                            {plan.tagline}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        className="w-6 h-6 rounded-full border-2 items-center justify-center"
+                        style={{
+                          borderColor: isSelected ? plan.color : '#475569',
+                          backgroundColor: isSelected ? plan.color : 'transparent',
+                        }}
+                      >
+                        {isSelected && <Check size={14} color="white" />}
+                      </View>
+                    </View>
+
+                    {/* Price */}
+                    <View className="mb-4">
+                      {price === 0 ? (
+                        <Text
+                          className="text-3xl text-white"
+                          style={{ fontFamily: 'Nunito_800ExtraBold' }}
+                        >
+                          Gratuit
+                        </Text>
+                      ) : (
+                        <View className="flex-row items-baseline">
+                          <Text
+                            className="text-3xl text-white"
+                            style={{ fontFamily: 'Nunito_800ExtraBold' }}
+                          >
+                            {price.toFixed(2).replace('.', ',')}€
+                          </Text>
+                          <Text
+                            className="text-slate-400 text-base ml-1"
+                            style={{ fontFamily: 'Nunito_400Regular' }}
+                          >
+                            /{billingPeriod === 'monthly' ? 'mois' : 'an'}
+                          </Text>
+                        </View>
+                      )}
+                      {perMonth && (
+                        <Text
+                          className="text-sm mt-1"
+                          style={{ fontFamily: 'Nunito_400Regular', color: plan.color }}
+                        >
+                          soit {perMonth.replace('.', ',')}€/mois • {plan.annualSavings}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Features */}
+                    <View className="space-y-2">
+                      {plan.features.map((feature, i) => (
+                        <View key={i} className="flex-row items-center">
+                          {feature.included ? (
+                            <Check size={16} color={feature.highlight ? plan.color : '#10B981'} />
+                          ) : (
+                            <X size={16} color="#475569" />
+                          )}
+                          <Text
+                            className="ml-2"
+                            style={{
+                              fontFamily: feature.highlight ? 'Nunito_600SemiBold' : 'Nunito_400Regular',
+                              fontSize: 14,
+                              color: feature.included ? (feature.highlight ? plan.color : '#E2E8F0') : '#64748B',
+                            }}
+                          >
+                            {feature.text}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+
+          {/* CTA Button */}
+          <Animated.View
+            entering={FadeInUp.duration(400).delay(700)}
+            className="mx-6 mt-2"
+          >
+            {selectedPlan === 'free' ? (
+              <Pressable
+                onPress={() => router.back()}
+                className="rounded-2xl py-5 items-center"
+                style={{ backgroundColor: '#475569' }}
+              >
+                <Text
+                  className="text-white text-xl"
                   style={{ fontFamily: 'Nunito_700Bold' }}
                 >
-                  {t('premium.popular')}
+                  Continuer gratuitement
                 </Text>
-              </View>
-
-              <View className="items-center pt-4">
-                <Text
-                  className="text-gray-500 text-base"
-                  style={{ fontFamily: 'Nunito_600SemiBold' }}
-                >
-                  {t('premium.monthly')}
-                </Text>
-                <View className="flex-row items-baseline mt-2">
-                  <Text
-                    className="text-5xl text-gray-900"
-                    style={{ fontFamily: 'Nunito_800ExtraBold' }}
-                  >
-                    {t('premium.price')}
-                  </Text>
-                  <Text
-                    className="text-gray-500 text-lg ml-1"
-                    style={{ fontFamily: 'Nunito_400Regular' }}
-                  >
-                    {t('premium.per_month')}
-                  </Text>
-                </View>
-                <Text
-                  className="text-gray-400 text-sm mt-2"
-                  style={{ fontFamily: 'Nunito_400Regular' }}
-                >
-                  {t('premium.cancel_anytime')}
-                </Text>
-              </View>
-
-              {/* Subscribe button */}
+              </Pressable>
+            ) : (
               <Pressable
-                onPress={handlePurchase}
-                disabled={isPurchasing || !monthlyPackage}
-                className="mt-6 rounded-2xl py-5 items-center active:scale-[0.98]"
+                onPress={() => handlePurchase(selectedPlan)}
+                disabled={isPurchasing}
+                className="rounded-2xl py-5 items-center active:scale-[0.98]"
                 style={{
-                  backgroundColor: isPurchasing ? '#93C5FD' : '#2563EB',
+                  backgroundColor: isPurchasing
+                    ? '#64748B'
+                    : plans.find(p => p.id === selectedPlan)?.color || '#2563EB',
                 }}
               >
                 {isPurchasing ? (
@@ -310,17 +634,17 @@ export default function PremiumScreen() {
                     className="text-white text-xl"
                     style={{ fontFamily: 'Nunito_700Bold' }}
                   >
-                    {t('premium.subscribe')}
+                    S'abonner maintenant
                   </Text>
                 )}
               </Pressable>
-            </View>
+            )}
           </Animated.View>
 
-          {/* Restore purchases */}
+          {/* Restore */}
           <Animated.View
-            entering={FadeInUp.duration(400).delay(700)}
-            className="items-center"
+            entering={FadeInUp.duration(400).delay(800)}
+            className="items-center mt-4"
           >
             <Pressable
               onPress={handleRestore}
@@ -328,44 +652,31 @@ export default function PremiumScreen() {
               className="py-3"
             >
               <Text
-                className="text-blue-200 text-base underline"
+                className="text-slate-400 text-base underline"
                 style={{ fontFamily: 'Nunito_600SemiBold' }}
               >
-                {t('premium.restore')}
+                Restaurer mes achats
               </Text>
             </Pressable>
           </Animated.View>
 
-          {/* Terms */}
-          <Animated.View
-            entering={FadeInUp.duration(400).delay(800)}
-            className="px-8 mt-4"
-          >
-            <Text
-              className="text-blue-300/60 text-xs text-center"
-              style={{ fontFamily: 'Nunito_400Regular', lineHeight: 18 }}
-            >
-              {t('premium.terms')}
-            </Text>
-          </Animated.View>
-
-          {/* Trust Badges */}
+          {/* Trust badges */}
           <Animated.View
             entering={FadeInUp.duration(400).delay(900)}
-            className="px-6 mt-6 mb-4"
+            className="mx-6 mt-6 mb-4"
           >
             <View
               className="rounded-2xl p-4"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
             >
-              <View className="flex-row justify-center items-center mb-2">
-                <Shield size={16} color="rgba(255,255,255,0.7)" />
+              <View className="flex-row justify-center items-center mb-3">
+                <Shield size={16} color="#94A3B8" />
                 <Text
                   className="ml-2"
                   style={{
                     fontFamily: 'Nunito_600SemiBold',
                     fontSize: 12,
-                    color: 'rgba(255,255,255,0.7)',
+                    color: '#94A3B8',
                   }}
                 >
                   Application de confiance
@@ -376,13 +687,13 @@ export default function PremiumScreen() {
                   <View
                     key={i}
                     className="px-2 py-1 rounded-full mx-1 mb-1"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                   >
                     <Text
                       style={{
                         fontFamily: 'Nunito_600SemiBold',
                         fontSize: 10,
-                        color: 'rgba(255,255,255,0.8)',
+                        color: '#94A3B8',
                       }}
                     >
                       {badge}
@@ -391,14 +702,15 @@ export default function PremiumScreen() {
                 ))}
               </View>
               <Text
-                className="text-center mt-2"
+                className="text-center mt-3"
                 style={{
                   fontFamily: 'Nunito_400Regular',
-                  fontSize: 10,
-                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: 11,
+                  color: '#64748B',
+                  lineHeight: 16,
                 }}
               >
-                Données hébergées en France • Chiffrement AES-256
+                Annulez à tout moment • Données hébergées en France
               </Text>
             </View>
           </Animated.View>
