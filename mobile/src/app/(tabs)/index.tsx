@@ -18,7 +18,9 @@ import Animated, {
 import { useDocumentStore } from '@/lib/state/document-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
+import { useDeviceType } from '@/lib/hooks/useDeviceType';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { QuickScanButton } from '@/components/QuickScanButton';
 import { usePremium } from '@/lib/hooks/usePremium';
 import { useTranslation } from '@/lib/i18n';
 
@@ -30,9 +32,10 @@ export default function HomeScreen() {
   const documents = useDocumentStore((s) => s.documents);
   const loadDocuments = useDocumentStore((s) => s.loadDocuments);
   const isInitialized = useDocumentStore((s) => s.isInitialized);
-  
-  // Display settings
+
+  // Display settings and device info
   const display = useDisplaySettings();
+  const device = useDeviceType();
   const { isPremium, requirePremium } = usePremium();
 
   // Load documents on mount
@@ -317,12 +320,15 @@ export default function HomeScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Grille d'actions secondaires */}
-          <View className="px-6 flex-row space-x-4 mb-5">
+          {/* Grille d'actions secondaires - Tablet adaptive */}
+          <View
+            className="px-6 mb-5"
+            style={device.isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : { flexDirection: 'row' }}
+          >
             {/* Parler */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInUp.duration(500).delay(400).springify()}
-              className="flex-1"
+              style={device.isTablet ? { width: '48%' } : { flex: 1, marginRight: 8 }}
             >
               <Pressable
                 onPress={() => {
@@ -342,6 +348,7 @@ export default function HomeScreen() {
                   shadowOpacity: 0.15,
                   shadowRadius: 12,
                   elevation: 4,
+                  minHeight: device.isTablet ? 160 : undefined,
                 }}
               >
                 <View className="flex-row items-center justify-between">
@@ -354,14 +361,20 @@ export default function HomeScreen() {
                   {!isPremium && <Lock size={16} color="#C2410C" />}
                 </View>
                 <Text
-                  className="text-lg"
-                  style={{ fontFamily: 'Nunito_700Bold', color: '#C2410C' }}
+                  style={{
+                    fontFamily: 'Nunito_700Bold',
+                    color: '#C2410C',
+                    fontSize: device.isTablet ? 20 : 18,
+                  }}
                 >
                   {t('home.speak')}
                 </Text>
                 <Text
-                  className="text-sm text-text-secondary mt-0.5"
-                  style={{ fontFamily: 'Nunito_400Regular' }}
+                  className="text-text-secondary mt-0.5"
+                  style={{
+                    fontFamily: 'Nunito_400Regular',
+                    fontSize: device.isTablet ? 16 : 14,
+                  }}
                 >
                   {t('home.speak_sub')}
                 </Text>
@@ -369,9 +382,9 @@ export default function HomeScreen() {
             </Animated.View>
 
             {/* Documents */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInUp.duration(500).delay(500).springify()}
-              className="flex-1"
+              style={device.isTablet ? { width: '48%' } : { flex: 1, marginLeft: 8 }}
             >
               <Pressable
                 onPress={() => router.push('/(tabs)/documents')}
@@ -385,23 +398,30 @@ export default function HomeScreen() {
                   shadowOpacity: 0.15,
                   shadowRadius: 12,
                   elevation: 4,
+                  minHeight: device.isTablet ? 160 : undefined,
                 }}
               >
-                <View 
+                <View
                   className="w-14 h-14 rounded-2xl items-center justify-center mb-3"
                   style={{ backgroundColor: '#DDD6FE' }}
                 >
                   <FolderOpen size={28} color="#6D28D9" strokeWidth={2} />
                 </View>
                 <Text
-                  className="text-lg"
-                  style={{ fontFamily: 'Nunito_700Bold', color: '#5B21B6' }}
+                  style={{
+                    fontFamily: 'Nunito_700Bold',
+                    color: '#5B21B6',
+                    fontSize: device.isTablet ? 20 : 18,
+                  }}
                 >
                   {t('home.documents')}
                 </Text>
                 <Text
-                  className="text-sm text-text-secondary mt-0.5"
-                  style={{ fontFamily: 'Nunito_400Regular' }}
+                  className="text-text-secondary mt-0.5"
+                  style={{
+                    fontFamily: 'Nunito_400Regular',
+                    fontSize: device.isTablet ? 16 : 14,
+                  }}
                 >
                   {t('home.documents_sub')}
                 </Text>
@@ -463,36 +483,54 @@ export default function HomeScreen() {
             entering={FadeIn.duration(500).delay(700)}
             className="mx-6 mt-2"
           >
-            <View 
+            <View
               className="rounded-3xl p-5"
-              style={{ 
+              style={{
                 backgroundColor: '#FDF2F8',
                 borderWidth: 2,
                 borderColor: '#FBCFE8',
+                maxWidth: device.isTablet ? 600 : undefined,
+                alignSelf: device.isTablet ? 'center' : undefined,
+                width: device.isTablet ? '100%' : undefined,
               }}
             >
               <View className="flex-row items-center mb-3">
-                <Text style={{ fontSize: 24 }}>💡</Text>
+                <Text style={{ fontSize: device.isTablet ? 28 : 24 }}>💡</Text>
                 <Text
-                  className="text-lg ml-2"
-                  style={{ fontFamily: 'Nunito_700Bold', color: '#BE185D' }}
+                  className="ml-2"
+                  style={{
+                    fontFamily: 'Nunito_700Bold',
+                    color: '#BE185D',
+                    fontSize: device.isTablet ? 20 : 18,
+                  }}
                 >
                   {t('home.tip_title')}
                 </Text>
               </View>
               <Text
-                className="text-base leading-6"
-                style={{ fontFamily: 'Nunito_400Regular', color: '#831843' }}
+                className="leading-6"
+                style={{
+                  fontFamily: 'Nunito_400Regular',
+                  color: '#831843',
+                  fontSize: device.isTablet ? 18 : 16,
+                }}
               >
                 {t('home.tip_text')}
               </Text>
             </View>
           </Animated.View>
 
-          {/* Boutons bas (Historique + Réglages) */}
+          {/* Boutons bas (Historique + Reglages) */}
           <Animated.View
             entering={FadeIn.duration(500).delay(800)}
-            className="mx-6 mt-5 flex-row space-x-3"
+            className="mx-6 mt-5"
+            style={{
+              flexDirection: 'row',
+              maxWidth: device.isTablet ? 600 : undefined,
+              alignSelf: device.isTablet ? 'center' : undefined,
+              width: device.isTablet ? '100%' : undefined,
+              gap: device.isTablet ? 16 : 12,
+            }}
           >
             {/* Historique */}
             <Pressable
@@ -502,9 +540,10 @@ export default function HomeScreen() {
                 backgroundColor: display.colors.card,
                 borderWidth: 1,
                 borderColor: display.colors.border,
+                minHeight: device.isTablet ? 70 : undefined,
               }}
             >
-              <View 
+              <View
                 className="w-10 h-10 rounded-xl items-center justify-center"
                 style={{ backgroundColor: display.isDarkMode ? '#312E81' : '#F5F3FF' }}
               >
@@ -514,7 +553,7 @@ export default function HomeScreen() {
                 className="ml-3"
                 style={{
                   fontFamily: 'Nunito_600SemiBold',
-                  fontSize: display.fontSize.base,
+                  fontSize: device.isTablet ? display.fontSize.lg : display.fontSize.base,
                   color: display.colors.textSecondary,
                 }}
               >
@@ -522,11 +561,12 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
 
-            {/* Réglages */}
+            {/* Reglages */}
             <Pressable
               onPress={() => router.push('/reglages')}
               className="flex-1 rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
               style={{
+                minHeight: device.isTablet ? 70 : undefined,
                 backgroundColor: display.colors.card,
                 borderWidth: 1,
                 borderColor: display.colors.border,
@@ -573,11 +613,19 @@ export default function HomeScreen() {
                   color: display.isDarkMode ? '#93C5FD' : '#1E40AF',
                 }}
               >
-                RGPD · HDS · France Num · Hébergé en France
+                RGPD · HDS · France Num · Heberge en France
               </Text>
             </View>
           </Animated.View>
         </ScrollView>
+
+        {/* Quick Scan Floating Button */}
+        <QuickScanButton
+          position={device.isTablet ? 'bottom-center' : 'bottom-right'}
+          bottomOffset={device.isTablet ? 32 : 24}
+          size={device.isTablet ? 'large' : 'medium'}
+          label={t('home.scan')}
+        />
       </SafeAreaView>
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import {
   ChevronLeft, Volume2, VolumeX, PenLine, Clock, FolderOpen,
   Calendar, Wallet, CheckCircle2, X, Copy, Bell, BellOff, Trash2, Share2, Users,
-  Play, Square, BookOpen, Camera
+  Play, Square, BookOpen, Camera, AlertTriangle, Zap
 } from 'lucide-react-native';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn,
@@ -18,11 +18,14 @@ import * as Clipboard from 'expo-clipboard';
 import { useDocumentStore } from '@/lib/state/document-store';
 import { useSettingsStore, getVoiceRate } from '@/lib/state/settings-store';
 import { useHistoryStore } from '@/lib/state/history-store';
-import { generateResponseWithAI } from '@/lib/services/ai-service';
+import { generateResponseWithAI, detectDeadlines, generateAutoReminders, DetectedDeadline, AutoReminder } from '@/lib/services/ai-service';
 import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
+import { useDeviceType } from '@/lib/hooks/useDeviceType';
 import { URGENCE_STYLES } from '@/lib/types';
 import { ScheduledReminder } from '@/lib/services/notification-service';
 import { ShareDocumentModal } from '@/components/ShareDocumentModal';
+import { ResponseTemplates } from '@/components/ResponseTemplates';
 import { useFamilyStore } from '@/lib/state/family-store';
 import { usePremium } from '@/lib/hooks/usePremium';
 import { useTranslation, getSpeechLanguageCode } from '@/lib/i18n';
@@ -77,6 +80,10 @@ export default function ResultatScreen() {
   const rappelsJoursAvant = useSettingsStore((s) => s.rappelsJoursAvant);
   const language = useSettingsStore((s) => s.language);
 
+  // Display and device settings
+  const display = useDisplaySettings();
+  const device = useDeviceType();
+
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [readMode, setReadMode] = useState<ReadMode>('resume');
   const [showResponseModal, setShowResponseModal] = useState(false);
@@ -91,12 +98,13 @@ export default function ResultatScreen() {
   const [documentReminders, setDocumentReminders] = useState<ScheduledReminder[]>([]);
   const [isScheduling, setIsScheduling] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  
+  const [autoRemindersScheduled, setAutoRemindersScheduled] = useState(false);
+
   const familyMembers = useFamilyStore((s) => s.members);
   const documentShares = useFamilyStore((s) => s.getDocumentShares);
   const loadFamily = useFamilyStore((s) => s.loadFamily);
 
-  const { 
+  const {
     isEnabled: notificationsEnabled,
     requestPermission,
     scheduleReminder,
@@ -108,6 +116,17 @@ export default function ResultatScreen() {
   const addAction = useHistoryStore((s) => s.addAction);
   const { requirePremium } = usePremium();
 
+  // Detect deadlines and generate auto-reminders
+  const detectedDeadlines = useMemo(() => {
+    if (!currentDocument) return [];
+    return detectDeadlines(currentDocument);
+  }, [currentDocument]);
+
+  const suggestedReminders = useMemo(() => {
+    if (!currentDocument) return [];
+    return generateAutoReminders(currentDocument, rappelsJoursAvant);
+  }, [currentDocument, rappelsJoursAvant]);
+
   // Load existing reminders, family, and track view
   useEffect(() => {
     loadFamily();
@@ -116,7 +135,7 @@ export default function ResultatScreen() {
   useEffect(() => {
     if (currentDocument) {
       getDocumentReminders(currentDocument.id).then(setDocumentReminders);
-      
+
       // Track document view
       addAction({
         type: 'view',
@@ -509,6 +528,76 @@ export default function ResultatScreen() {
             )}
           </Animated.View>
 
+          {/* Auto-Detected Deadline Alert */}
+          {detectedDeadlines.length > 0 && detectedDeadlines[0].daysUntil <= 14 && (
+            <Animated.View entering={FadeInUp.duration(400).delay(175)} className="mb-5">
+              <View
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: detectedDeadlines[0].isUrgent ? '#FEF2F2' : '#FEF9C3',
+                  borderWidth: 2,
+                  borderColor: detectedDeadlines[0].isUrgent ? '#FCA5A5' : '#FDE047',
+                }}
+              >
+                <View className="flex-row items-center mb-2">
+                  {detectedDeadlines[0].isUrgent ? (
+                    <AlertTriangle size={20} color="#DC2626" />
+                  ) : (
+                    <Clock size={20} color="#CA8A04" />
+                  )}
+                  <Text
+                    className="ml-2"
+                    style={{
+                      fontFamily: 'Nunito_700Bold',
+                      fontSize: 16,
+                      color: detectedDeadlines[0].isUrgent ? '#991B1B' : '#854D0E',
+                    }}
+                  >
+                    {detectedDeadlines[0].isUrgent
+                      ? (language === 'fr' ? 'Echeance urgente' : language === 'es' ? 'Vencimiento urgente' : 'Urgent deadline')
+                      : (language === 'fr' ? 'Echeance a venir' : language === 'es' ? 'Vencimiento proximo' : 'Upcoming deadline')}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    fontFamily: 'Nunito_600SemiBold',
+                    fontSize: 14,
+                    color: detectedDeadlines[0].isUrgent ? '#B91C1C' : '#A16207',
+                  }}
+                >
+                  {language === 'fr'
+                    ? `Il reste ${detectedDeadlines[0].daysUntil} jour${detectedDeadlines[0].daysUntil > 1 ? 's' : ''} pour agir`
+                    : language === 'es'
+                    ? `Quedan ${detectedDeadlines[0].daysUntil} dia${detectedDeadlines[0].daysUntil > 1 ? 's' : ''} para actuar`
+                    : `${detectedDeadlines[0].daysUntil} day${detectedDeadlines[0].daysUntil > 1 ? 's' : ''} left to act`}
+                </Text>
+
+                {/* Quick reminder button if no reminders set */}
+                {documentReminders.length === 0 && suggestedReminders.length > 0 && (
+                  <Pressable
+                    onPress={handleOpenReminderModal}
+                    className="mt-3 py-2 px-4 rounded-xl flex-row items-center justify-center active:scale-[0.98]"
+                    style={{
+                      backgroundColor: detectedDeadlines[0].isUrgent ? '#DC2626' : '#CA8A04',
+                    }}
+                  >
+                    <Bell size={16} color="white" />
+                    <Text
+                      className="ml-2"
+                      style={{
+                        fontFamily: 'Nunito_700Bold',
+                        fontSize: 14,
+                        color: 'white',
+                      }}
+                    >
+                      {language === 'fr' ? 'Creer un rappel' : language === 'es' ? 'Crear recordatorio' : 'Create reminder'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </Animated.View>
+          )}
+
           {/* Explication */}
           <Animated.View entering={FadeInUp.duration(400).delay(200)} className="mb-5">
             <LinearGradient
@@ -671,6 +760,11 @@ export default function ResultatScreen() {
                 </Pressable>
               </View>
             </View>
+          </Animated.View>
+
+          {/* Response Templates Section */}
+          <Animated.View entering={FadeInUp.duration(400).delay(290)} className="mb-6">
+            <ResponseTemplates document={currentDocument} />
           </Animated.View>
 
           {/* Buttons */}
