@@ -348,6 +348,60 @@ export default function PremiumScreen() {
               {t('premium.terms')}
             </Text>
           </Animated.View>
+
+          {/* Trust Badges */}
+          <Animated.View
+            entering={FadeInUp.duration(400).delay(900)}
+            className="px-6 mt-6 mb-4"
+          >
+            <View
+              className="rounded-2xl p-4"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+            >
+              <View className="flex-row justify-center items-center mb-2">
+                <Shield size={16} color="rgba(255,255,255,0.7)" />
+                <Text
+                  className="ml-2"
+                  style={{
+                    fontFamily: 'Nunito_600SemiBold',
+                    fontSize: 12,
+                    color: 'rgba(255,255,255,0.7)',
+                  }}
+                >
+                  Application de confiance
+                </Text>
+              </View>
+              <View className="flex-row justify-center flex-wrap">
+                {['🇪🇺 RGPD', '🏥 HDS', '🇫🇷 France Num', '🔒 ISO 27001'].map((badge, i) => (
+                  <View
+                    key={i}
+                    className="px-2 py-1 rounded-full mx-1 mb-1"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: 'Nunito_600SemiBold',
+                        fontSize: 10,
+                        color: 'rgba(255,255,255,0.8)',
+                      }}
+                    >
+                      {badge}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <Text
+                className="text-center mt-2"
+                style={{
+                  fontFamily: 'Nunito_400Regular',
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.5)',
+                }}
+              >
+                Données hébergées en France • Chiffrement AES-256
+              </Text>
+            </View>
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>
