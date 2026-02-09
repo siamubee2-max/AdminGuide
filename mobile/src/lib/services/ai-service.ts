@@ -37,10 +37,10 @@ Règles importantes:
 
 Réponds UNIQUEMENT en JSON valide avec cette structure exacte:
 {
-  "type": "Facture|Courrier|Convocation|Attestation|Information|Relevé|Contrat|Autre",
-  "organisme": "Nom de l'organisme (EDF, Mutuelle, Banque...)",
+  "type": "Facture|Courrier|Convocation|Attestation|Information|Relevé|Contrat|Avis d'imposition|Mise en demeure|Autre",
+  "organisme": "Nom de l'organisme (EDF, Mutuelle, Banque, Impôts, Assurance...)",
   "titre": "Titre court du document",
-  "categorie": "sante|energie|pension|banque|tous",
+  "categorie": "sante|energie|pension|banque|impots|assurance|juridique|medical|tous",
   "urgence": "vert|orange|rouge",
   "urgenceLabel": "Pas urgent|Cette semaine|Urgent",
   "montant": "Montant si applicable ou null",
@@ -50,10 +50,21 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte:
   "contenuBrut": "Transcription complète et fidèle du texte visible sur le document, mot pour mot, en conservant la structure (paragraphes, sauts de ligne). Ne résume pas, recopie tout le texte."
 }
 
+Catégories disponibles:
+- sante: Sécurité sociale, mutuelles, remboursements soins
+- energie: EDF, Engie, eau, gaz, électricité
+- pension: Retraite, caisses de pension
+- banque: Banques, relevés, crédits
+- impots: Impôts, taxes, avis d'imposition, DGFIP, Trésor Public
+- assurance: Assurance habitation, auto, vie, contrats d'assurance
+- juridique: Huissiers, tribunaux, avocats, mises en demeure, convocations judiciaires
+- medical: Convocations médicales, rendez-vous médecins, hôpitaux, examens
+- tous: Autre type de document
+
 Critères d'urgence:
 - vert: Information, rien à faire, à conserver
 - orange: Action requise cette semaine ou dans les 15 jours
-- rouge: Urgent, action immédiate requise, date limite proche (< 7 jours)`;
+- rouge: Urgent, action immédiate requise, date limite proche (< 7 jours), huissier, mise en demeure`;
 
 function getSystemPromptAnalyse(language: Language): string {
   const langName = getLanguageName(language);
@@ -76,10 +87,10 @@ Important rules:
 
 Respond ONLY in valid JSON with this exact structure:
 {
-  "type": "Invoice|Letter|Summons|Certificate|Information|Statement|Contract|Other",
+  "type": "Invoice|Letter|Summons|Certificate|Information|Statement|Contract|Tax Notice|Formal Notice|Other",
   "organisme": "Name of the organization",
   "titre": "Short title of the document in ${langName}",
-  "categorie": "sante|energie|pension|banque|tous",
+  "categorie": "sante|energie|pension|banque|impots|assurance|juridique|medical|tous",
   "urgence": "vert|orange|rouge",
   "urgenceLabel": "Not urgent|This week|Urgent (translate to ${langName})",
   "montant": "Amount if applicable or null",
@@ -89,10 +100,21 @@ Respond ONLY in valid JSON with this exact structure:
   "contenuBrut": "Complete and faithful transcription of the visible text on the document, word for word, keeping the structure."
 }
 
+Available categories:
+- sante: Social security, health insurance, medical reimbursements
+- energie: Electricity, water, gas utilities
+- pension: Retirement, pension funds
+- banque: Banks, statements, loans
+- impots: Taxes, tax notices, treasury
+- assurance: Home insurance, car insurance, life insurance
+- juridique: Bailiffs, courts, lawyers, formal notices, legal summons
+- medical: Medical appointments, doctor visits, hospital, examinations
+- tous: Other document types
+
 Urgency criteria:
 - vert: Information, nothing to do, keep it
 - orange: Action required this week or within 15 days
-- rouge: Urgent, immediate action required, deadline close (< 7 days)`;
+- rouge: Urgent, immediate action required, deadline close (< 7 days), bailiff, formal notice`;
 }
 
 const SYSTEM_PROMPT_REPONSE = `Tu es MonAdmin, un assistant qui aide les seniors à rédiger des réponses aux courriers administratifs.

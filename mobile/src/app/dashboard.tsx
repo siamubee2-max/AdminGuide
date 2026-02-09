@@ -37,6 +37,10 @@ const CATEGORY_COLORS: Record<DocumentCategory, { bg: string; text: string; icon
   energie: { bg: '#FEF3C7', text: '#92400E', icon: '💡' },
   pension: { bg: '#DBEAFE', text: '#1E40AF', icon: '👴' },
   banque: { bg: '#D1FAE5', text: '#047857', icon: '🏦' },
+  impots: { bg: '#E0E7FF', text: '#3730A3', icon: '📊' },
+  assurance: { bg: '#FCE7F3', text: '#9D174D', icon: '🏠' },
+  juridique: { bg: '#FEF9C3', text: '#854D0E', icon: '⚖️' },
+  medical: { bg: '#CCFBF1', text: '#115E59', icon: '🩺' },
 };
 
 export default function DashboardScreen() {

@@ -1,6 +1,6 @@
 export type UrgenceLevel = 'vert' | 'orange' | 'rouge';
 
-export type DocumentCategory = 'tous' | 'sante' | 'energie' | 'pension' | 'banque';
+export type DocumentCategory = 'tous' | 'sante' | 'energie' | 'pension' | 'banque' | 'impots' | 'assurance' | 'juridique' | 'medical';
 
 export interface Document {
   id: number;
@@ -58,4 +58,8 @@ export const CATEGORIES = [
   { id: 'energie' as const, label: 'Énergie', icon: '💡' },
   { id: 'pension' as const, label: 'Pension', icon: '👴' },
   { id: 'banque' as const, label: 'Banque', icon: '🏦' },
+  { id: 'impots' as const, label: 'Impôts', icon: '📊' },
+  { id: 'assurance' as const, label: 'Assurance', icon: '🏠' },
+  { id: 'juridique' as const, label: 'Juridique', icon: '⚖️' },
+  { id: 'medical' as const, label: 'Médical', icon: '🩺' },
 ] as const;
