@@ -20,6 +20,7 @@ import {
   Mail,
   Crown,
   Building2,
+  Shield,
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -276,6 +277,50 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             </Text>
           </View>
           <ChevronRight size={20} color="#059669" />
+        </Pressable>
+      </Animated.View>
+
+      {/* Trust & Security Banner */}
+      <Animated.View entering={FadeInUp.duration(400).delay(60)}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/confiance');
+          }}
+          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
+          style={{
+            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#EFF6FF',
+            borderWidth: 1,
+            borderColor: display.isDarkMode ? '#1E40AF' : '#BFDBFE',
+          }}
+        >
+          <View
+            className="w-12 h-12 rounded-xl items-center justify-center"
+            style={{ backgroundColor: display.isDarkMode ? '#312E81' : '#DBEAFE' }}
+          >
+            <Shield size={24} color="#2563EB" />
+          </View>
+          <View className="flex-1 ml-3">
+            <Text
+              style={{
+                fontFamily: 'Nunito_700Bold',
+                fontSize: display.fontSize.base,
+                color: display.isDarkMode ? '#93C5FD' : '#1E40AF',
+              }}
+            >
+              Confiance & Sécurité
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Nunito_400Regular',
+                fontSize: display.fontSize.xs,
+                color: display.isDarkMode ? '#60A5FA' : '#2563EB',
+              }}
+            >
+              RGPD · HDS · France Num · ISO 27001
+            </Text>
+          </View>
+          <ChevronRight size={20} color="#2563EB" />
         </Pressable>
       </Animated.View>
 

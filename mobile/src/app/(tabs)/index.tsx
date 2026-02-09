@@ -550,6 +550,33 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </Animated.View>
+
+          {/* Trust Badge Footer */}
+          <Animated.View
+            entering={FadeIn.duration(400).delay(900)}
+            className="mx-6 mt-5 mb-4"
+          >
+            <View
+              className="rounded-xl py-3 px-4 flex-row items-center justify-center"
+              style={{
+                backgroundColor: display.isDarkMode ? 'rgba(30, 58, 95, 0.5)' : 'rgba(239, 246, 255, 0.8)',
+                borderWidth: 1,
+                borderColor: display.isDarkMode ? '#1E3A5F' : '#DBEAFE',
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>🔒</Text>
+              <Text
+                className="ml-2"
+                style={{
+                  fontFamily: 'Nunito_600SemiBold',
+                  fontSize: 11,
+                  color: display.isDarkMode ? '#93C5FD' : '#1E40AF',
+                }}
+              >
+                RGPD · HDS · France Num · Hébergé en France
+              </Text>
+            </View>
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>

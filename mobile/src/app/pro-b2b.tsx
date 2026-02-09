@@ -543,6 +543,62 @@ export default function ProB2BScreen() {
             ))}
           </View>
 
+          {/* Trust & Compliance Badges */}
+          <Animated.View
+            entering={FadeIn.duration(400).delay(700)}
+            className="px-6 mb-8"
+          >
+            <Text
+              className="text-xl text-gray-800 mb-4"
+              style={{ fontFamily: 'Nunito_700Bold' }}
+            >
+              Certifications & Conformité
+            </Text>
+            <View
+              className="rounded-2xl p-5"
+              style={{ backgroundColor: '#F0F9FF', borderWidth: 1, borderColor: '#BAE6FD' }}
+            >
+              <View className="flex-row flex-wrap justify-between mb-4">
+                {[
+                  { icon: '🇪🇺', label: 'RGPD', desc: 'Conformité totale' },
+                  { icon: '🏥', label: 'HDS', desc: 'Données de santé' },
+                  { icon: '🇫🇷', label: 'France Num', desc: 'Label officiel' },
+                  { icon: '🔒', label: 'ISO 27001', desc: 'Sécurité info' },
+                ].map((badge, i) => (
+                  <View key={i} className="items-center mb-3" style={{ width: '23%' }}>
+                    <View
+                      className="w-12 h-12 rounded-xl items-center justify-center mb-1"
+                      style={{ backgroundColor: 'white' }}
+                    >
+                      <Text style={{ fontSize: 22 }}>{badge.icon}</Text>
+                    </View>
+                    <Text
+                      className="text-center"
+                      style={{ fontFamily: 'Nunito_700Bold', fontSize: 11, color: '#1E40AF' }}
+                    >
+                      {badge.label}
+                    </Text>
+                    <Text
+                      className="text-center"
+                      style={{ fontFamily: 'Nunito_400Regular', fontSize: 9, color: '#6B7280' }}
+                    >
+                      {badge.desc}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <View className="flex-row items-center justify-center pt-3 border-t border-sky-200">
+                <Shield size={16} color="#0369A1" />
+                <Text
+                  className="ml-2"
+                  style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 12, color: '#0369A1' }}
+                >
+                  Hébergement 100% français • Chiffrement AES-256
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+
           {/* Contact form */}
           {showContactForm && (
             <Animated.View
