@@ -45,11 +45,14 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!isReady) return;
 
-    const inOnboarding = segments[0] === 'onboarding';
+    const inOnboarding = segments[0] === 'onboarding' ||
+                         segments[0] === 'onboarding-choice' ||
+                         segments[0] === 'onboarding-helper' ||
+                         segments[0] === 'onboarding-senior-code';
 
     if (!onboardingComplete && !inOnboarding) {
-      // Redirect to onboarding if not completed
-      router.replace('/onboarding');
+      // Redirect to onboarding choice screen if not completed
+      router.replace('/onboarding-choice');
     } else if (onboardingComplete && inOnboarding) {
       // Redirect to home if onboarding is complete
       router.replace('/(tabs)');
@@ -68,10 +71,28 @@ function RootLayoutNav() {
     <ThemeProvider value={modeSombre ? DarkTheme : DefaultTheme}>
       <StatusBar style={modeSombre ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen 
-          name="onboarding"
+        <Stack.Screen
+          name="onboarding-choice"
           options={{
             animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="onboarding-helper"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="onboarding-senior-code"
+          options={{
+            animation: 'slide_from_right',
           }}
         />
         <Stack.Screen name="(tabs)" />
