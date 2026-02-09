@@ -21,6 +21,7 @@ import {
   Crown,
   Building2,
   Shield,
+  Users as UsersIcon,
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -321,6 +322,50 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             </Text>
           </View>
           <ChevronRight size={20} color="#2563EB" />
+        </Pressable>
+      </Animated.View>
+
+      {/* Community / Blog Banner */}
+      <Animated.View entering={FadeInUp.duration(400).delay(70)}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/communaute');
+          }}
+          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
+          style={{
+            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#F0FDF4',
+            borderWidth: 1,
+            borderColor: display.isDarkMode ? '#0D9488' : '#A7F3D0',
+          }}
+        >
+          <View
+            className="w-12 h-12 rounded-xl items-center justify-center"
+            style={{ backgroundColor: display.isDarkMode ? '#064E3B' : '#D1FAE5' }}
+          >
+            <UsersIcon size={24} color="#10B981" />
+          </View>
+          <View className="flex-1 ml-3">
+            <Text
+              style={{
+                fontFamily: 'Nunito_700Bold',
+                fontSize: display.fontSize.base,
+                color: display.isDarkMode ? '#6EE7B7' : '#047857',
+              }}
+            >
+              Communauté Aidants
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Nunito_400Regular',
+                fontSize: display.fontSize.xs,
+                color: display.isDarkMode ? '#34D399' : '#059669',
+              }}
+            >
+              Guides, conseils et newsletter
+            </Text>
+          </View>
+          <ChevronRight size={20} color="#10B981" />
         </Pressable>
       </Animated.View>
 
