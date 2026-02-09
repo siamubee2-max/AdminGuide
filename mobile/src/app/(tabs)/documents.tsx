@@ -16,6 +16,10 @@ const CATEGORY_COLORS = {
   energie: { bg: '#FEF3C7', border: '#FDE68A', icon: '#D97706', text: '#92400E' },
   pension: { bg: '#DBEAFE', border: '#BFDBFE', icon: '#2563EB', text: '#1E40AF' },
   banque: { bg: '#D1FAE5', border: '#A7F3D0', icon: '#059669', text: '#047857' },
+  impots: { bg: '#E0E7FF', border: '#C7D2FE', icon: '#4F46E5', text: '#3730A3' },
+  assurance: { bg: '#FCE7F3', border: '#FBCFE8', icon: '#DB2777', text: '#9D174D' },
+  juridique: { bg: '#FEF9C3', border: '#FEF08A', icon: '#CA8A04', text: '#854D0E' },
+  medical: { bg: '#CCFBF1', border: '#99F6E4', icon: '#0D9488', text: '#115E59' },
 };
 
 export default function DocumentsScreen() {
@@ -56,6 +60,10 @@ export default function DocumentsScreen() {
       energie: 0,
       pension: 0,
       banque: 0,
+      impots: 0,
+      assurance: 0,
+      juridique: 0,
+      medical: 0,
     };
 
     documents.forEach((doc) => {
