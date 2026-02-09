@@ -5,6 +5,7 @@ import "./env";
 import { sampleRouter } from "./routes/sample";
 import { linkingRouter } from "./routes/linking";
 import { b2bRouter } from "./routes/b2b";
+import { newsletterRouter } from "./routes/newsletter";
 import { logger } from "hono/logger";
 
 const app = new Hono();
@@ -35,6 +36,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/api/sample", sampleRouter);
 app.route("/api/linking", linkingRouter);
 app.route("/api/b2b", b2bRouter);
+app.route("/api/newsletter", newsletterRouter);
 
 const port = Number(process.env.PORT) || 3000;
 
