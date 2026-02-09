@@ -25,6 +25,34 @@ interface GeneratedResponse {
   signature: string;
 }
 
+// New types for enhanced features
+export interface DetectedDeadline {
+  date: Date;
+  type: 'payment' | 'response' | 'appointment' | 'renewal' | 'other';
+  description: string;
+  daysUntil: number;
+  isUrgent: boolean;
+}
+
+export interface AutoReminder {
+  id: string;
+  title: string;
+  description: string;
+  scheduledDate: Date;
+  type: 'deadline' | 'followup' | 'action';
+  priority: 'low' | 'medium' | 'high';
+}
+
+export interface ResponseTemplate {
+  id: string;
+  type: 'accept' | 'refuse' | 'info_request' | 'confirm' | 'delay' | 'complaint';
+  label: string;
+  icon: string;
+  description: string;
+  subject: string;
+  body: string;
+}
+
 const SYSTEM_PROMPT_ANALYSE = `Tu es MonAdmin, un assistant administratif bienveillant.
 Tu analyses des documents administratifs et les expliques simplement.
 
@@ -650,4 +678,510 @@ export async function processVoiceCommand(
     intention: 'incompris',
     reponse: r.unknown,
   };
+}
+
+/**
+ * Detect deadlines from document content and date limit
+ */
+export function detectDeadlines(document: Document): DetectedDeadline[] {
+  const deadlines: DetectedDeadline[] = [];
+  const now = new Date();
+
+  // Parse the dateLimite if present
+  if (document.dateLimite) {
+    const parsedDate = parseDate(document.dateLimite);
+    if (parsedDate) {
+      const daysUntil = Math.ceil((parsedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Determine deadline type based on document content
+      let type: DetectedDeadline['type'] = 'other';
+      const actionLower = document.action.toLowerCase();
+      const titleLower = document.titre.toLowerCase();
+
+      if (actionLower.includes('payer') || actionLower.includes('pay') || actionLower.includes('règlement') || titleLower.includes('facture') || titleLower.includes('invoice')) {
+        type = 'payment';
+      } else if (actionLower.includes('répondre') || actionLower.includes('respond') || actionLower.includes('retourner')) {
+        type = 'response';
+      } else if (titleLower.includes('rendez-vous') || titleLower.includes('convocation') || titleLower.includes('appointment')) {
+        type = 'appointment';
+      } else if (titleLower.includes('renouvellement') || titleLower.includes('renewal') || titleLower.includes('échéance')) {
+        type = 'renewal';
+      }
+
+      deadlines.push({
+        date: parsedDate,
+        type,
+        description: document.action,
+        daysUntil,
+        isUrgent: daysUntil <= 7,
+      });
+    }
+  }
+
+  return deadlines;
+}
+
+/**
+ * Parse various date formats commonly found in French administrative documents
+ */
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+
+  // Clean the string
+  const cleaned = dateStr.trim().toLowerCase();
+
+  // French month names
+  const frenchMonths: Record<string, number> = {
+    'janvier': 0, 'février': 1, 'mars': 2, 'avril': 3, 'mai': 4, 'juin': 5,
+    'juillet': 6, 'août': 7, 'septembre': 8, 'octobre': 9, 'novembre': 10, 'décembre': 11,
+    'jan': 0, 'fév': 1, 'fev': 1, 'mar': 2, 'avr': 3, 'jun': 5,
+    'juil': 6, 'jul': 6, 'aoû': 7, 'aou': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'déc': 11, 'dec': 11,
+  };
+
+  // Spanish month names
+  const spanishMonths: Record<string, number> = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+    'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+  };
+
+  // English month names
+  const englishMonths: Record<string, number> = {
+    'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+    'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11,
+    'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'jun': 5, 'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11,
+  };
+
+  const allMonths = { ...frenchMonths, ...spanishMonths, ...englishMonths };
+
+  // Pattern: "25 janvier 2026" or "25 de enero de 2026"
+  const longDatePattern = /(\d{1,2})\s*(?:de\s+)?([a-zéèûô]+)\s*(?:de\s+)?(\d{4})/i;
+  const longMatch = cleaned.match(longDatePattern);
+  if (longMatch) {
+    const day = parseInt(longMatch[1], 10);
+    const monthStr = longMatch[2].toLowerCase();
+    const year = parseInt(longMatch[3], 10);
+    const month = allMonths[monthStr];
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // Pattern: "January 25, 2026"
+  const englishDatePattern = /([a-z]+)\s+(\d{1,2}),?\s*(\d{4})/i;
+  const englishMatch = cleaned.match(englishDatePattern);
+  if (englishMatch) {
+    const monthStr = englishMatch[1].toLowerCase();
+    const day = parseInt(englishMatch[2], 10);
+    const year = parseInt(englishMatch[3], 10);
+    const month = allMonths[monthStr];
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // Pattern: "25/01/2026" or "25-01-2026"
+  const numericPattern = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/;
+  const numericMatch = cleaned.match(numericPattern);
+  if (numericMatch) {
+    const day = parseInt(numericMatch[1], 10);
+    const month = parseInt(numericMatch[2], 10) - 1;
+    const year = parseInt(numericMatch[3], 10);
+    return new Date(year, month, day);
+  }
+
+  // Pattern: "2026-01-25" (ISO format)
+  const isoPattern = /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/;
+  const isoMatch = cleaned.match(isoPattern);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    return new Date(year, month, day);
+  }
+
+  return null;
+}
+
+/**
+ * Generate automatic reminders based on document deadlines and urgency
+ */
+export function generateAutoReminders(document: Document, reminderDaysConfig: number[] = [1, 3, 7]): AutoReminder[] {
+  const reminders: AutoReminder[] = [];
+  const deadlines = detectDeadlines(document);
+
+  for (const deadline of deadlines) {
+    const { date, type, daysUntil, isUrgent } = deadline;
+
+    // Create reminders based on configured days
+    for (const daysBefore of reminderDaysConfig) {
+      if (daysUntil >= daysBefore) {
+        const reminderDate = new Date(date);
+        reminderDate.setDate(reminderDate.getDate() - daysBefore);
+        reminderDate.setHours(9, 0, 0, 0); // Set to 9 AM
+
+        // Only add if reminder is in the future
+        if (reminderDate > new Date()) {
+          let priority: AutoReminder['priority'] = 'low';
+          if (daysBefore === 1) priority = 'high';
+          else if (daysBefore <= 3) priority = 'medium';
+
+          const typeLabels: Record<DetectedDeadline['type'], string> = {
+            payment: 'Paiement',
+            response: 'Réponse',
+            appointment: 'Rendez-vous',
+            renewal: 'Renouvellement',
+            other: 'Échéance',
+          };
+
+          reminders.push({
+            id: `auto_${document.id}_${daysBefore}`,
+            title: `${typeLabels[type]} - J-${daysBefore}`,
+            description: `${document.titre} (${document.organisme})`,
+            scheduledDate: reminderDate,
+            type: 'deadline',
+            priority,
+          });
+        }
+      }
+    }
+
+    // If very urgent (< 3 days) and no reminders yet, add an immediate one
+    if (isUrgent && daysUntil > 0 && daysUntil <= 3 && reminders.length === 0) {
+      const immediateDate = new Date();
+      immediateDate.setHours(immediateDate.getHours() + 2);
+
+      reminders.push({
+        id: `urgent_${document.id}`,
+        title: 'Action urgente requise',
+        description: `${document.titre} - Date limite dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}`,
+        scheduledDate: immediateDate,
+        type: 'deadline',
+        priority: 'high',
+      });
+    }
+  }
+
+  return reminders.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
+}
+
+/**
+ * Generate response templates based on document type and content
+ */
+export function generateResponseTemplates(
+  document: Document,
+  userInfo: { prenom: string; nom: string; adresse: string },
+  language: Language = 'fr'
+): ResponseTemplate[] {
+  const templates: ResponseTemplate[] = [];
+  const { organisme, titre, action, montant, dateLimite } = document;
+
+  if (language === 'fr') {
+    // Accept / Confirm template
+    templates.push({
+      id: 'accept',
+      type: 'accept',
+      label: 'Accepter',
+      icon: '✓',
+      description: 'Confirmer la demande ou accepter les conditions',
+      subject: `Acceptation - ${titre}`,
+      body: `Madame, Monsieur,
+
+Je fais suite à votre courrier concernant ${titre.toLowerCase()}.
+
+J'ai bien pris connaissance des informations communiquées et je vous confirme mon accord.${montant ? `
+
+Je procéderai au règlement de ${montant} dans les meilleurs délais.` : ''}
+
+Je reste à votre disposition pour tout renseignement complémentaire.
+
+Cordialement,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    // Refuse template
+    templates.push({
+      id: 'refuse',
+      type: 'refuse',
+      label: 'Refuser',
+      icon: '✕',
+      description: 'Contester ou refuser la demande',
+      subject: `Contestation - ${titre}`,
+      body: `Madame, Monsieur,
+
+Je fais suite à votre courrier concernant ${titre.toLowerCase()}.
+
+Après examen attentif, je souhaite contester cette demande pour les raisons suivantes :
+[Précisez vos raisons]
+
+Je vous prie de bien vouloir réexaminer ce dossier et me tenir informé(e) de votre décision.
+
+Dans l'attente de votre réponse, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    // Request more info template
+    templates.push({
+      id: 'info_request',
+      type: 'info_request',
+      label: 'Demander des précisions',
+      icon: '?',
+      description: 'Demander des informations supplémentaires',
+      subject: `Demande de renseignements - ${titre}`,
+      body: `Madame, Monsieur,
+
+Je fais suite à votre courrier concernant ${titre.toLowerCase()}.
+
+Afin de pouvoir traiter cette demande correctement, je vous serais reconnaissant(e) de bien vouloir me fournir les informations complémentaires suivantes :
+- [Précisez vos questions]
+
+Je reste dans l'attente de votre réponse.
+
+Cordialement,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    // Confirm reception template
+    templates.push({
+      id: 'confirm',
+      type: 'confirm',
+      label: 'Accuser réception',
+      icon: '📨',
+      description: 'Confirmer la bonne réception du courrier',
+      subject: `Accusé de réception - ${titre}`,
+      body: `Madame, Monsieur,
+
+Je vous confirme la bonne réception de votre courrier concernant ${titre.toLowerCase()}, reçu le [date].
+
+J'ai bien noté les informations communiquées.${dateLimite ? ` Je m'engage à effectuer les démarches nécessaires avant le ${dateLimite}.` : ''}
+
+Cordialement,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    // Delay request template
+    templates.push({
+      id: 'delay',
+      type: 'delay',
+      label: 'Demander un délai',
+      icon: '⏱',
+      description: 'Solliciter un délai supplémentaire',
+      subject: `Demande de délai - ${titre}`,
+      body: `Madame, Monsieur,
+
+Je fais suite à votre courrier concernant ${titre.toLowerCase()}.
+
+Je me permets de solliciter un délai supplémentaire pour [traiter cette demande / effectuer le paiement] en raison de [expliquez votre situation].
+
+Je vous propose de [nouvelle date ou arrangement].
+
+Je vous remercie de votre compréhension et reste à votre disposition pour convenir d'une solution.
+
+Cordialement,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+  } else if (language === 'en') {
+    templates.push({
+      id: 'accept',
+      type: 'accept',
+      label: 'Accept',
+      icon: '✓',
+      description: 'Confirm the request or accept the conditions',
+      subject: `Acceptance - ${titre}`,
+      body: `Dear Sir or Madam,
+
+I am writing in response to your letter regarding ${titre.toLowerCase()}.
+
+I acknowledge receipt of the information provided and confirm my agreement.${montant ? `
+
+I will proceed with the payment of ${montant} at my earliest convenience.` : ''}
+
+Please do not hesitate to contact me if you require any further information.
+
+Yours faithfully,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'refuse',
+      type: 'refuse',
+      label: 'Refuse',
+      icon: '✕',
+      description: 'Contest or refuse the request',
+      subject: `Dispute - ${titre}`,
+      body: `Dear Sir or Madam,
+
+I am writing in response to your letter regarding ${titre.toLowerCase()}.
+
+After careful consideration, I wish to dispute this request for the following reasons:
+[Please specify your reasons]
+
+I kindly request that you review this matter and inform me of your decision.
+
+Yours faithfully,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'info_request',
+      type: 'info_request',
+      label: 'Request information',
+      icon: '?',
+      description: 'Request additional information',
+      subject: `Information Request - ${titre}`,
+      body: `Dear Sir or Madam,
+
+I am writing in response to your letter regarding ${titre.toLowerCase()}.
+
+In order to process this request properly, I would be grateful if you could provide the following additional information:
+- [Please specify your questions]
+
+I look forward to hearing from you.
+
+Yours faithfully,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'confirm',
+      type: 'confirm',
+      label: 'Acknowledge receipt',
+      icon: '📨',
+      description: 'Confirm receipt of the letter',
+      subject: `Acknowledgement - ${titre}`,
+      body: `Dear Sir or Madam,
+
+I confirm receipt of your letter regarding ${titre.toLowerCase()}, received on [date].
+
+I have noted the information provided.${dateLimite ? ` I will complete the necessary steps before ${dateLimite}.` : ''}
+
+Yours faithfully,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'delay',
+      type: 'delay',
+      label: 'Request extension',
+      icon: '⏱',
+      description: 'Request additional time',
+      subject: `Extension Request - ${titre}`,
+      body: `Dear Sir or Madam,
+
+I am writing in response to your letter regarding ${titre.toLowerCase()}.
+
+I would like to request an extension to [process this request / make the payment] due to [explain your situation].
+
+I propose [new date or arrangement].
+
+Thank you for your understanding.
+
+Yours faithfully,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+  } else {
+    // Spanish
+    templates.push({
+      id: 'accept',
+      type: 'accept',
+      label: 'Aceptar',
+      icon: '✓',
+      description: 'Confirmar la solicitud o aceptar las condiciones',
+      subject: `Aceptación - ${titre}`,
+      body: `Estimados señores,
+
+Me dirijo a ustedes en respuesta a su carta sobre ${titre.toLowerCase()}.
+
+He tomado nota de la información proporcionada y confirmo mi acuerdo.${montant ? `
+
+Procederé al pago de ${montant} a la mayor brevedad.` : ''}
+
+Quedo a su disposición para cualquier información adicional.
+
+Atentamente,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'refuse',
+      type: 'refuse',
+      label: 'Rechazar',
+      icon: '✕',
+      description: 'Impugnar o rechazar la solicitud',
+      subject: `Impugnación - ${titre}`,
+      body: `Estimados señores,
+
+Me dirijo a ustedes en respuesta a su carta sobre ${titre.toLowerCase()}.
+
+Tras un examen detenido, deseo impugnar esta solicitud por las siguientes razones:
+[Por favor, especifique sus razones]
+
+Les ruego que revisen este asunto y me informen de su decisión.
+
+Atentamente,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'info_request',
+      type: 'info_request',
+      label: 'Solicitar información',
+      icon: '?',
+      description: 'Solicitar información adicional',
+      subject: `Solicitud de información - ${titre}`,
+      body: `Estimados señores,
+
+Me dirijo a ustedes en respuesta a su carta sobre ${titre.toLowerCase()}.
+
+Para poder tramitar correctamente esta solicitud, les agradecería que me proporcionaran la siguiente información adicional:
+- [Por favor, especifique sus preguntas]
+
+Quedo a la espera de su respuesta.
+
+Atentamente,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'confirm',
+      type: 'confirm',
+      label: 'Acusar recibo',
+      icon: '📨',
+      description: 'Confirmar la recepción de la carta',
+      subject: `Acuse de recibo - ${titre}`,
+      body: `Estimados señores,
+
+Les confirmo la recepción de su carta sobre ${titre.toLowerCase()}, recibida el [fecha].
+
+He tomado nota de la información proporcionada.${dateLimite ? ` Me comprometo a realizar los trámites necesarios antes del ${dateLimite}.` : ''}
+
+Atentamente,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+
+    templates.push({
+      id: 'delay',
+      type: 'delay',
+      label: 'Solicitar prórroga',
+      icon: '⏱',
+      description: 'Solicitar tiempo adicional',
+      subject: `Solicitud de prórroga - ${titre}`,
+      body: `Estimados señores,
+
+Me dirijo a ustedes en respuesta a su carta sobre ${titre.toLowerCase()}.
+
+Me permito solicitar una prórroga para [tramitar esta solicitud / efectuar el pago] debido a [explique su situación].
+
+Les propongo [nueva fecha o acuerdo].
+
+Les agradezco su comprensión.
+
+Atentamente,
+${userInfo.prenom} ${userInfo.nom}${userInfo.adresse ? `\n${userInfo.adresse}` : ''}`,
+    });
+  }
+
+  return templates;
 }

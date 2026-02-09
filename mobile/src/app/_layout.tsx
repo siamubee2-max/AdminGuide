@@ -180,6 +180,13 @@ function RootLayoutNav() {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="franceconnect"
+          options={{
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
