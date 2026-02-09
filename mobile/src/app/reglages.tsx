@@ -19,6 +19,7 @@ import {
   Phone,
   Mail,
   Crown,
+  Building2,
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -231,6 +232,50 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             </Text>
           </View>
           <ChevronRight size={24} color={isPremium ? '#92400E' : 'white'} />
+        </Pressable>
+      </Animated.View>
+
+      {/* MonAdmin Pro B2B Banner */}
+      <Animated.View entering={FadeInUp.duration(400).delay(40)}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/pro-b2b');
+          }}
+          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98] overflow-hidden"
+          style={{
+            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#F0FDF4',
+            borderWidth: 1,
+            borderColor: display.isDarkMode ? '#065F46' : '#BBF7D0',
+          }}
+        >
+          <View
+            className="w-12 h-12 rounded-xl items-center justify-center"
+            style={{ backgroundColor: display.isDarkMode ? '#064E3B' : '#D1FAE5' }}
+          >
+            <Building2 size={24} color="#059669" />
+          </View>
+          <View className="flex-1 ml-3">
+            <Text
+              style={{
+                fontFamily: 'Nunito_700Bold',
+                fontSize: display.fontSize.base,
+                color: display.isDarkMode ? '#34D399' : '#047857',
+              }}
+            >
+              MonAdmin Pro
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Nunito_400Regular',
+                fontSize: display.fontSize.xs,
+                color: display.isDarkMode ? '#6EE7B7' : '#059669',
+              }}
+            >
+              Pour EHPAD et résidences seniors
+            </Text>
+          </View>
+          <ChevronRight size={20} color="#059669" />
         </Pressable>
       </Animated.View>
 
