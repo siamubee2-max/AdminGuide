@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Secrets
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+*.jks

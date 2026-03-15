@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,14 +14,9 @@ import {
   Users,
   Info,
   Check,
-  Trash2,
-  Plus,
-  Phone,
-  Mail,
   Crown,
   Building2,
   Shield,
-  Users as UsersIcon,
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -35,6 +30,7 @@ import {
 import { useDisplaySettings } from '@/lib/hooks/useDisplaySettings';
 import { hasEntitlement } from '@/lib/revenuecatClient';
 import { useTranslation, LANGUAGES } from '@/lib/i18n';
+import { ProfilSection, FamilleSection, ToggleRow } from '@/components/settings';
 
 type Section = 'main' | 'profil' | 'affichage' | 'son' | 'notifications' | 'famille' | 'apropos';
 
@@ -168,7 +164,6 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
   const setLanguage = useSettingsStore((s) => s.setLanguage);
   const currentLanguage = useSettingsStore((s) => s.language);
 
-  // Check premium status
   const { data: isPremium } = useQuery({
     queryKey: ['premium-status'],
     queryFn: async () => {
@@ -196,9 +191,7 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             router.push('/premium');
           }}
           className="rounded-2xl p-5 flex-row items-center active:scale-[0.98] overflow-hidden"
-          style={{
-            backgroundColor: isPremium ? '#FEF3C7' : '#1E3A8A',
-          }}
+          style={{ backgroundColor: isPremium ? '#FEF3C7' : '#1E3A8A' }}
         >
           <LinearGradient
             colors={isPremium ? ['#FEF3C7', '#FDE68A'] : ['#1E3A8A', '#2563EB']}
@@ -288,16 +281,16 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push('/confiance');
           }}
-          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
+          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98] overflow-hidden"
           style={{
-            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#EFF6FF',
+            backgroundColor: display.isDarkMode ? '#1E293B' : '#F0F9FF',
             borderWidth: 1,
-            borderColor: display.isDarkMode ? '#1E40AF' : '#BFDBFE',
+            borderColor: display.isDarkMode ? '#1E3A5F' : '#BAE6FD',
           }}
         >
           <View
             className="w-12 h-12 rounded-xl items-center justify-center"
-            style={{ backgroundColor: display.isDarkMode ? '#312E81' : '#DBEAFE' }}
+            style={{ backgroundColor: display.isDarkMode ? '#1E3A5F' : '#DBEAFE' }}
           >
             <Shield size={24} color="#2563EB" />
           </View>
@@ -318,98 +311,10 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
                 color: display.isDarkMode ? '#60A5FA' : '#2563EB',
               }}
             >
-              RGPD · HDS · France Num · ISO 27001
+              Vos données sont protégées
             </Text>
           </View>
           <ChevronRight size={20} color="#2563EB" />
-        </Pressable>
-      </Animated.View>
-
-      {/* Community / Blog Banner */}
-      <Animated.View entering={FadeInUp.duration(400).delay(70)}>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/communaute');
-          }}
-          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
-          style={{
-            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#F0FDF4',
-            borderWidth: 1,
-            borderColor: display.isDarkMode ? '#0D9488' : '#A7F3D0',
-          }}
-        >
-          <View
-            className="w-12 h-12 rounded-xl items-center justify-center"
-            style={{ backgroundColor: display.isDarkMode ? '#064E3B' : '#D1FAE5' }}
-          >
-            <UsersIcon size={24} color="#10B981" />
-          </View>
-          <View className="flex-1 ml-3">
-            <Text
-              style={{
-                fontFamily: 'Nunito_700Bold',
-                fontSize: display.fontSize.base,
-                color: display.isDarkMode ? '#6EE7B7' : '#047857',
-              }}
-            >
-              Communauté Aidants
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Nunito_400Regular',
-                fontSize: display.fontSize.xs,
-                color: display.isDarkMode ? '#34D399' : '#059669',
-              }}
-            >
-              Guides, conseils et newsletter
-            </Text>
-          </View>
-          <ChevronRight size={20} color="#10B981" />
-        </Pressable>
-      </Animated.View>
-
-      {/* FranceConnect Banner */}
-      <Animated.View entering={FadeInUp.duration(400).delay(75)}>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/franceconnect');
-          }}
-          className="rounded-2xl p-4 flex-row items-center active:scale-[0.98]"
-          style={{
-            backgroundColor: display.isDarkMode ? '#1E3A5F' : '#EFF6FF',
-            borderWidth: 1,
-            borderColor: display.isDarkMode ? '#1E40AF' : '#BFDBFE',
-          }}
-        >
-          <View
-            className="w-12 h-12 rounded-xl items-center justify-center"
-            style={{ backgroundColor: display.isDarkMode ? '#312E81' : '#DBEAFE' }}
-          >
-            <Shield size={24} color="#1D4ED8" />
-          </View>
-          <View className="flex-1 ml-3">
-            <Text
-              style={{
-                fontFamily: 'Nunito_700Bold',
-                fontSize: display.fontSize.base,
-                color: display.isDarkMode ? '#93C5FD' : '#1E40AF',
-              }}
-            >
-              FranceConnect
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Nunito_400Regular',
-                fontSize: display.fontSize.xs,
-                color: display.isDarkMode ? '#60A5FA' : '#2563EB',
-              }}
-            >
-              Services administratifs en un clic
-            </Text>
-          </View>
-          <ChevronRight size={20} color="#1D4ED8" />
         </Pressable>
       </Animated.View>
 
@@ -417,77 +322,60 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
       <Animated.View entering={FadeInUp.duration(400).delay(80)}>
         <View
           className="rounded-2xl p-5"
-          style={{
-            backgroundColor: display.colors.card,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: display.isDarkMode ? 0.3 : 0.06,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
+          style={{ backgroundColor: display.colors.card }}
         >
           <Text
-            className="mb-4"
+            className="mb-3"
             style={{
               fontFamily: 'Nunito_700Bold',
               fontSize: display.fontSize.lg,
               color: display.colors.text,
             }}
           >
-            🌍 {t('settings.language')}
+            {t('settings.language')}
           </Text>
-          <View className="space-y-2">
+          <View className="flex-row flex-wrap gap-2">
             {LANGUAGES.map((lang) => (
               <Pressable
-                key={lang.id}
+                key={lang.code}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setLanguage(lang.id);
+                  setLanguage(lang.code);
                 }}
-                className="flex-row items-center justify-between p-3 rounded-xl"
+                className="px-4 py-3 rounded-xl flex-row items-center"
                 style={{
-                  backgroundColor: currentLanguage === lang.id ? (display.isDarkMode ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                  backgroundColor: currentLanguage === lang.code
+                    ? (display.isDarkMode ? '#1E3A5F' : '#DBEAFE')
+                    : (display.isDarkMode ? '#1F2937' : '#F9FAFB'),
+                  borderWidth: currentLanguage === lang.code ? 2 : 0,
+                  borderColor: '#2563EB',
                 }}
               >
-                <View className="flex-row items-center">
-                  <Text style={{ fontSize: 24, marginRight: 12 }}>{lang.flag}</Text>
-                  <Text
-                    style={{
-                      fontFamily: 'Nunito_600SemiBold',
-                      fontSize: display.fontSize.base,
-                      color: currentLanguage === lang.id ? display.colors.primary : display.colors.text,
-                    }}
-                  >
-                    {lang.label}
-                  </Text>
-                </View>
-                {currentLanguage === lang.id && (
-                  <Check size={20} color={display.colors.primary} />
-                )}
+                <Text style={{ fontSize: 20, marginRight: 8 }}>{lang.flag}</Text>
+                <Text
+                  style={{
+                    fontFamily: 'Nunito_600SemiBold',
+                    fontSize: display.fontSize.sm,
+                    color: currentLanguage === lang.code ? display.colors.primary : display.colors.text,
+                  }}
+                >
+                  {lang.name}
+                </Text>
               </Pressable>
             ))}
           </View>
         </View>
       </Animated.View>
 
+      {/* Menu Items */}
       {menuItems.map((item, index) => (
-        <Animated.View
-          key={item.id}
-          entering={FadeInUp.duration(400).delay((index + 1) * 80)}
-        >
+        <Animated.View key={item.id} entering={FadeInUp.duration(400).delay(100 + index * 50)}>
           <Pressable
             onPress={() => onNavigate(item.id)}
             className="rounded-2xl p-5 flex-row items-center active:scale-[0.98]"
-            style={{
-              backgroundColor: display.colors.card,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: display.isDarkMode ? 0.3 : 0.06,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
+            style={{ backgroundColor: display.colors.card }}
           >
-            <View 
+            <View
               className="w-14 h-14 rounded-2xl items-center justify-center"
               style={{ backgroundColor: display.isDarkMode ? item.bgDark : item.bg }}
             >
@@ -495,8 +383,8 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
             </View>
             <Text
               className="flex-1 ml-4"
-              style={{ 
-                fontFamily: 'Nunito_700Bold',
+              style={{
+                fontFamily: 'Nunito_600SemiBold',
                 fontSize: display.fontSize.xl,
                 color: display.colors.text,
               }}
@@ -507,83 +395,6 @@ function MainSection({ onNavigate, display }: { onNavigate: (section: Section) =
           </Pressable>
         </Animated.View>
       ))}
-    </View>
-  );
-}
-
-// Section Profil
-function ProfilSection({ settings }: { settings: SettingsStore }) {
-  const t = useTranslation();
-  const display = useDisplaySettings();
-  const [prenom, setPrenom] = useState(settings.profile.prenom);
-  const [nom, setNom] = useState(settings.profile.nom);
-  const [telephone, setTelephone] = useState(settings.profile.telephone);
-  const [adresse, setAdresse] = useState(settings.profile.adresse);
-
-  const handleSave = () => {
-    settings.updateProfile({ prenom, nom, telephone, adresse });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  const avatars = ['👵', '👴', '🧓', '👩‍🦳', '👨‍🦳', '😊'];
-
-  return (
-    <View className="space-y-5">
-      {/* Avatar picker */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <Text
-          className="mb-4"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
-          {t('settings.avatar')}
-        </Text>
-        <View className="flex-row justify-around">
-          {avatars.map((avatar) => (
-            <Pressable
-              key={avatar}
-              onPress={() => settings.updateProfile({ avatar })}
-              className="w-16 h-16 rounded-full items-center justify-center"
-              style={{
-                backgroundColor: settings.profile.avatar === avatar ? '#DBEAFE' : '#F3F4F6',
-                borderWidth: settings.profile.avatar === avatar ? 3 : 0,
-                borderColor: '#2563EB',
-              }}
-            >
-              <Text style={{ fontSize: 36 }}>{avatar}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {/* Form fields */}
-      <View
-        className="rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <InputField label={t('settings.firstname')} value={prenom} onChangeText={setPrenom} placeholder={t('settings.firstname_ph')} />
-        <InputField label={t('settings.lastname')} value={nom} onChangeText={setNom} placeholder={t('settings.lastname_ph')} />
-        <InputField label={t('settings.phone')} value={telephone} onChangeText={setTelephone} placeholder={t('settings.phone_ph')} keyboardType="phone-pad" />
-        <InputField label={t('settings.address')} value={adresse} onChangeText={setAdresse} placeholder={t('settings.address_ph')} multiline />
-      </View>
-
-      {/* Save button */}
-      <Pressable
-        onPress={handleSave}
-        className="bg-primary rounded-2xl py-5 flex-row items-center justify-center active:scale-[0.98]"
-        style={{ backgroundColor: '#2563EB' }}
-      >
-        <Check size={24} color="white" />
-        <Text className="text-xl text-white ml-3" style={{ fontFamily: 'Nunito_700Bold' }}>
-          {t('settings.save')}
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -599,7 +410,6 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
     { id: 'tres_grand', label: t('settings.font_xlarge'), sampleSize: 22 },
   ];
 
-  // Preview colors based on current settings
   const getPreviewColors = () => {
     if (settings.modeSombre) {
       return settings.contrasteEleve 
@@ -626,17 +436,11 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
       >
         <Text
           className="text-sm mb-2"
-          style={{
-            fontFamily: 'Nunito_600SemiBold',
-            color: settings.modeSombre ? '#9CA3AF' : '#6B7280'
-          }}
+          style={{ fontFamily: 'Nunito_600SemiBold', color: settings.modeSombre ? '#9CA3AF' : '#6B7280' }}
         >
           {t('settings.preview')}
         </Text>
-        <View
-          className="rounded-xl p-4"
-          style={{ backgroundColor: previewColors.card }}
-        >
+        <View className="rounded-xl p-4" style={{ backgroundColor: previewColors.card }}>
           <Text
             style={{
               fontFamily: 'Nunito_700Bold',
@@ -661,17 +465,10 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
       </View>
 
       {/* Taille du texte */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
         <Text
           className="mb-4"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
+          style={{ fontFamily: 'Nunito_700Bold', fontSize: display.fontSize.lg, color: display.colors.text }}
         >
           {t('settings.font_size')}
         </Text>
@@ -691,125 +488,59 @@ function AffichageSection({ settings }: { settings: SettingsStore }) {
               }}
             >
               <View className="flex-row items-center">
-                <Text
-                  style={{ 
-                    fontFamily: 'Nunito_600SemiBold',
-                    fontSize: size.sampleSize,
-                    color: settings.taillePolice === size.id ? '#1E40AF' : '#374151',
-                  }}
-                >
+                <Text style={{ fontFamily: 'Nunito_600SemiBold', fontSize: size.sampleSize, color: settings.taillePolice === size.id ? '#1E40AF' : '#374151' }}>
                   Aa
                 </Text>
-                <Text
-                  className="ml-4"
-                  style={{ 
-                    fontFamily: 'Nunito_600SemiBold',
-                    fontSize: 16,
-                    color: settings.taillePolice === size.id ? '#1E40AF' : '#374151',
-                  }}
-                >
+                <Text className="ml-4" style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 16, color: settings.taillePolice === size.id ? '#1E40AF' : '#374151' }}>
                   {size.label}
                 </Text>
               </View>
-              {settings.taillePolice === size.id && (
-                <Check size={24} color="#2563EB" />
-              )}
+              {settings.taillePolice === size.id && <Check size={24} color="#2563EB" />}
             </Pressable>
           ))}
         </View>
       </View>
 
       {/* Mode sombre */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <Text
-          className="mb-4"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
+        <Text className="mb-4" style={{ fontFamily: 'Nunito_700Bold', fontSize: display.fontSize.lg, color: display.colors.text }}>
           {t('settings.theme')}
         </Text>
         <View className="flex-row space-x-3">
           <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (settings.modeSombre) settings.toggleModeSombre();
-            }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); if (settings.modeSombre) settings.toggleModeSombre(); }}
             className="flex-1 rounded-xl p-4 items-center"
-            style={{
-              backgroundColor: !settings.modeSombre ? '#FEF3C7' : '#F9FAFB',
-              borderWidth: !settings.modeSombre ? 2 : 0,
-              borderColor: '#F59E0B',
-            }}
+            style={{ backgroundColor: !settings.modeSombre ? '#FEF3C7' : '#F9FAFB', borderWidth: !settings.modeSombre ? 2 : 0, borderColor: '#F59E0B' }}
           >
             <Text style={{ fontSize: 32, marginBottom: 8 }}>☀️</Text>
-            <Text
-              style={{
-                fontFamily: 'Nunito_600SemiBold',
-                color: !settings.modeSombre ? '#B45309' : '#6B7280',
-              }}
-            >
-              {t('settings.theme_light')}
-            </Text>
+            <Text style={{ fontFamily: 'Nunito_600SemiBold', color: !settings.modeSombre ? '#B45309' : '#6B7280' }}>{t('settings.theme_light')}</Text>
           </Pressable>
-
           <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (!settings.modeSombre) settings.toggleModeSombre();
-            }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); if (!settings.modeSombre) settings.toggleModeSombre(); }}
             className="flex-1 rounded-xl p-4 items-center"
-            style={{
-              backgroundColor: settings.modeSombre ? '#312E81' : '#F9FAFB',
-              borderWidth: settings.modeSombre ? 2 : 0,
-              borderColor: '#4F46E5',
-            }}
+            style={{ backgroundColor: settings.modeSombre ? '#312E81' : '#F9FAFB', borderWidth: settings.modeSombre ? 2 : 0, borderColor: '#4F46E5' }}
           >
             <Text style={{ fontSize: 32, marginBottom: 8 }}>🌙</Text>
-            <Text
-              style={{
-                fontFamily: 'Nunito_600SemiBold',
-                color: settings.modeSombre ? '#E0E7FF' : '#6B7280',
-              }}
-            >
-              {t('settings.theme_dark')}
-            </Text>
+            <Text style={{ fontFamily: 'Nunito_600SemiBold', color: settings.modeSombre ? '#E0E7FF' : '#6B7280' }}>{t('settings.theme_dark')}</Text>
           </Pressable>
         </View>
       </View>
 
       {/* Contraste élevé */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
         <ToggleRow
           label={t('settings.contrast')}
           description={t('settings.contrast_desc')}
           value={settings.contrasteEleve}
-          onToggle={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            settings.toggleContrasteEleve();
-          }}
+          onToggle={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); settings.toggleContrasteEleve(); }}
         />
       </View>
 
       {/* Info */}
-      <View
-        className="rounded-2xl p-4"
-        style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE' }}
-      >
+      <View className="rounded-2xl p-4" style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE' }}>
         <View className="flex-row items-start">
           <Text style={{ fontSize: 20, marginRight: 12 }}>💡</Text>
-          <Text
-            className="flex-1 text-sm"
-            style={{ fontFamily: 'Nunito_400Regular', color: '#1E40AF', lineHeight: 20 }}
-          >
+          <Text className="flex-1 text-sm" style={{ fontFamily: 'Nunito_400Regular', color: '#1E40AF', lineHeight: 20 }}>
             {t('settings.changes_live')}
           </Text>
         </View>
@@ -831,19 +562,8 @@ function SonSection({ settings }: { settings: SettingsStore }) {
 
   return (
     <View className="space-y-5">
-      {/* Volume */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <Text
-          className="mb-2"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
+        <Text className="mb-2" style={{ fontFamily: 'Nunito_700Bold', fontSize: display.fontSize.lg, color: display.colors.text }}>
           {t('settings.volume')}
         </Text>
         <Text className="text-base text-text-secondary mb-4" style={{ fontFamily: 'Nunito_400Regular' }}>
@@ -852,10 +572,7 @@ function SonSection({ settings }: { settings: SettingsStore }) {
         <View className="flex-row items-center space-x-4">
           <Text style={{ fontSize: 20 }}>🔈</Text>
           <View className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-            <View 
-              className="h-full rounded-full"
-              style={{ width: `${settings.volumeVocal}%`, backgroundColor: '#2563EB' }}
-            />
+            <View className="h-full rounded-full" style={{ width: `${settings.volumeVocal}%`, backgroundColor: '#2563EB' }} />
           </View>
           <Text style={{ fontSize: 20 }}>🔊</Text>
         </View>
@@ -875,19 +592,8 @@ function SonSection({ settings }: { settings: SettingsStore }) {
         </View>
       </View>
 
-      {/* Vitesse */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <Text
-          className="mb-4"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
+        <Text className="mb-4" style={{ fontFamily: 'Nunito_700Bold', fontSize: display.fontSize.lg, color: display.colors.text }}>
           {t('settings.speed')}
         </Text>
         <View className="flex-row space-x-3">
@@ -910,11 +616,7 @@ function SonSection({ settings }: { settings: SettingsStore }) {
         </View>
       </View>
 
-      {/* Vibrations */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
         <ToggleRow
           label={t('settings.vibrations')}
           description={t('settings.vibrations_desc')}
@@ -942,10 +644,7 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
 
   return (
     <View className="space-y-5">
-      <View
-        className="rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: display.colors.card }}>
         <ToggleRow
           label={t('settings.notif_toggle')}
           description={t('settings.notif_desc')}
@@ -960,18 +659,8 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
         />
       </View>
 
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: display.colors.card }}
-      >
-        <Text
-          className="mb-4"
-          style={{
-            fontFamily: 'Nunito_700Bold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
+      <View className="rounded-2xl p-5" style={{ backgroundColor: display.colors.card }}>
+        <Text className="mb-4" style={{ fontFamily: 'Nunito_700Bold', fontSize: display.fontSize.lg, color: display.colors.text }}>
           {t('settings.reminders')}
         </Text>
         <View className="space-y-3">
@@ -980,224 +669,16 @@ function NotificationsSection({ settings }: { settings: SettingsStore }) {
               key={jour}
               onPress={() => toggleRappelJour(jour)}
               className="flex-row items-center justify-between p-4 rounded-xl"
-              style={{
-                backgroundColor: settings.rappelsJoursAvant.includes(jour) ? '#D1FAE5' : '#F9FAFB',
-              }}
+              style={{ backgroundColor: settings.rappelsJoursAvant.includes(jour) ? '#D1FAE5' : '#F9FAFB' }}
             >
               <Text style={{ fontFamily: 'Nunito_600SemiBold', color: '#374151' }}>
                 {t('settings.days_before', { count: jour, s: jour > 1 ? 's' : '' })}
               </Text>
-              {settings.rappelsJoursAvant.includes(jour) && (
-                <Check size={24} color="#10B981" />
-              )}
+              {settings.rappelsJoursAvant.includes(jour) && <Check size={24} color="#10B981" />}
             </Pressable>
           ))}
         </View>
       </View>
-    </View>
-  );
-}
-
-// Section Famille
-function FamilleSection({ settings }: { settings: SettingsStore }) {
-  const t = useTranslation();
-  const display = useDisplaySettings();
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newAidant, setNewAidant] = useState({
-    prenom: '',
-    nom: '',
-    telephone: '',
-    email: '',
-    relation: 'Fils/Fille',
-    notificationsUrgentes: true,
-  });
-
-  const handleAddAidant = () => {
-    if (newAidant.prenom && newAidant.telephone) {
-      settings.addAidant(newAidant);
-      setNewAidant({
-        prenom: '',
-        nom: '',
-        telephone: '',
-        email: '',
-        relation: 'Fils/Fille',
-        notificationsUrgentes: true,
-      });
-      setShowAddForm(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-  };
-
-  const handleRemoveAidant = (id: string, prenom: string) => {
-    Alert.alert(
-      t('settings.delete_helper'),
-      t('settings.delete_helper_msg', { name: prenom }),
-      [
-        { text: t('settings.cancel'), style: 'cancel' },
-        {
-          text: t('settings.delete'),
-          style: 'destructive',
-          onPress: () => settings.removeAidant(id),
-        },
-      ]
-    );
-  };
-
-  return (
-    <View className="space-y-5">
-      {/* Liste des aidants */}
-      {settings.aidants.length > 0 && (
-        <View
-          className="rounded-2xl overflow-hidden"
-          style={{ backgroundColor: display.colors.card }}
-        >
-          {settings.aidants.map((aidant, index) => (
-            <View
-              key={aidant.id}
-              className="p-5 flex-row items-center"
-              style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: '#F3F4F6' }}
-            >
-              <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center">
-                <Text style={{ fontSize: 28 }}>👤</Text>
-              </View>
-              <View className="flex-1 ml-4">
-                <Text
-                  style={{
-                    fontFamily: 'Nunito_700Bold',
-                    fontSize: display.fontSize.lg,
-                    color: display.colors.text,
-                  }}
-                >
-                  {aidant.prenom} {aidant.nom}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Nunito_400Regular',
-                    fontSize: display.fontSize.sm,
-                    color: display.colors.textMuted,
-                  }}
-                >
-                  {aidant.relation} • {aidant.telephone}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => handleRemoveAidant(aidant.id, aidant.prenom)}
-                className="w-10 h-10 rounded-full bg-red-50 items-center justify-center"
-              >
-                <Trash2 size={20} color="#EF4444" />
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Empty state */}
-      {settings.aidants.length === 0 && !showAddForm && (
-        <View
-          className="rounded-2xl p-8 items-center"
-          style={{ backgroundColor: display.colors.card }}
-        >
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>👨‍👩‍👧</Text>
-          <Text
-            className="text-center mb-2"
-            style={{
-              fontFamily: 'Nunito_700Bold',
-              fontSize: display.fontSize.xl,
-              color: display.colors.text,
-            }}
-          >
-            {t('settings.no_helpers')}
-          </Text>
-          <Text
-            className="text-center"
-            style={{
-              fontFamily: 'Nunito_400Regular',
-              fontSize: display.fontSize.base,
-              color: display.colors.textMuted,
-            }}
-          >
-            {t('settings.helpers_desc')}
-          </Text>
-        </View>
-      )}
-
-      {/* Add form */}
-      {showAddForm && (
-        <View
-          className="rounded-2xl p-5 space-y-4"
-          style={{ backgroundColor: display.colors.card }}
-        >
-          <Text
-            style={{
-              fontFamily: 'Nunito_700Bold',
-              fontSize: display.fontSize.lg,
-              color: display.colors.text,
-            }}
-          >
-            {t('settings.new_helper')}
-          </Text>
-          <InputField
-            label={t('settings.firstname')}
-            value={newAidant.prenom}
-            onChangeText={(v) => setNewAidant({ ...newAidant, prenom: v })}
-            placeholder={t('settings.firstname_ph')}
-          />
-          <InputField
-            label={t('settings.phone')}
-            value={newAidant.telephone}
-            onChangeText={(v) => setNewAidant({ ...newAidant, telephone: v })}
-            placeholder={t('settings.phone_ph')}
-            keyboardType="phone-pad"
-          />
-          <InputField
-            label="Email (optionnel)"
-            value={newAidant.email}
-            onChangeText={(v) => setNewAidant({ ...newAidant, email: v })}
-            placeholder="email@exemple.com"
-            keyboardType="email-address"
-          />
-
-          <View className="flex-row space-x-3 pt-2">
-            <Pressable
-              onPress={() => setShowAddForm(false)}
-              className="flex-1 py-4 rounded-xl items-center"
-              style={{ backgroundColor: '#F3F4F6' }}
-            >
-              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: '#6B7280' }}>
-                {t('settings.cancel')}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleAddAidant}
-              className="flex-1 py-4 rounded-xl items-center"
-              style={{ backgroundColor: '#10B981' }}
-            >
-              <Text style={{ fontFamily: 'Nunito_600SemiBold', color: 'white' }}>
-                {t('settings.add')}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {/* Add button */}
-      {!showAddForm && (
-        <Pressable
-          onPress={() => setShowAddForm(true)}
-          className="rounded-2xl p-5 flex-row items-center justify-center active:scale-[0.98]"
-          style={{
-            backgroundColor: display.colors.card,
-            borderWidth: 2,
-            borderColor: '#10B981',
-            borderStyle: 'dashed',
-          }}
-        >
-          <Plus size={24} color="#10B981" />
-          <Text className="text-lg ml-3" style={{ fontFamily: 'Nunito_700Bold', color: '#10B981' }}>
-            {t('settings.add_helper')}
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -1207,7 +688,6 @@ function AProposSection() {
   const router = useRouter();
   const t = useTranslation();
   const display = useDisplaySettings();
-  const settings = useSettingsStore();
 
   const handleResetOnboarding = () => {
     Alert.alert(
@@ -1218,7 +698,6 @@ function AProposSection() {
         {
           text: t('settings.yes'),
           onPress: async () => {
-            // Reset onboarding flag
             await AsyncStorage.removeItem('monadmin_settings');
             router.replace('/onboarding');
           },
@@ -1229,46 +708,20 @@ function AProposSection() {
 
   return (
     <View className="space-y-5">
-      <View
-        className="rounded-2xl p-6 items-center"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl p-6 items-center" style={{ backgroundColor: display.colors.card }}>
         <Text style={{ fontSize: 64, marginBottom: 16 }}>📱</Text>
-        <Text
-          style={{
-            fontFamily: 'Nunito_800ExtraBold',
-            fontSize: display.fontSize['2xl'],
-            color: display.colors.text,
-          }}
-        >
+        <Text style={{ fontFamily: 'Nunito_800ExtraBold', fontSize: display.fontSize['2xl'], color: display.colors.text }}>
           MonAdmin
         </Text>
-        <Text
-          className="mt-1"
-          style={{
-            fontFamily: 'Nunito_400Regular',
-            fontSize: display.fontSize.base,
-            color: display.colors.textMuted,
-          }}
-        >
+        <Text className="mt-1" style={{ fontFamily: 'Nunito_400Regular', fontSize: display.fontSize.base, color: display.colors.textMuted }}>
           Version 2.0.0
         </Text>
-        <Text
-          className="text-center mt-4 px-4"
-          style={{
-            fontFamily: 'Nunito_400Regular',
-            fontSize: display.fontSize.base,
-            color: display.colors.textMuted,
-          }}
-        >
+        <Text className="text-center mt-4 px-4" style={{ fontFamily: 'Nunito_400Regular', fontSize: display.fontSize.base, color: display.colors.textMuted }}>
           {t('settings.app_desc')}
         </Text>
       </View>
 
-      <View
-        className="rounded-2xl overflow-hidden"
-        style={{ backgroundColor: display.colors.card }}
-      >
+      <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: display.colors.card }}>
         {[
           { label: t('settings.faq'), icon: '❓', route: '/faq' as const },
           { label: t('settings.privacy'), icon: '🔒', route: '/confidentialite' as const },
@@ -1281,14 +734,7 @@ function AProposSection() {
             style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: '#F3F4F6' }}
           >
             <Text style={{ fontSize: 24, marginRight: 16 }}>{item.icon}</Text>
-            <Text
-              className="flex-1"
-              style={{
-                fontFamily: 'Nunito_600SemiBold',
-                fontSize: display.fontSize.lg,
-                color: display.colors.text,
-              }}
-            >
+            <Text className="flex-1" style={{ fontFamily: 'Nunito_600SemiBold', fontSize: display.fontSize.lg, color: display.colors.text }}>
               {item.label}
             </Text>
             <ChevronRight size={20} color="#9CA3AF" />
@@ -1296,136 +742,23 @@ function AProposSection() {
         ))}
       </View>
 
-      {/* Revoir le tutoriel */}
       <Pressable
         onPress={handleResetOnboarding}
         className="rounded-2xl p-5 flex-row items-center active:bg-gray-50"
         style={{ backgroundColor: display.colors.card }}
       >
         <Text style={{ fontSize: 24, marginRight: 16 }}>🎓</Text>
-        <Text
-          className="flex-1"
-          style={{
-            fontFamily: 'Nunito_600SemiBold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
+        <Text className="flex-1" style={{ fontFamily: 'Nunito_600SemiBold', fontSize: display.fontSize.lg, color: display.colors.text }}>
           {t('settings.tutorial')}
         </Text>
         <ChevronRight size={20} color="#9CA3AF" />
       </Pressable>
 
       <View className="items-center py-4">
-        <Text
-          style={{
-            fontFamily: 'Nunito_400Regular',
-            fontSize: display.fontSize.sm,
-            color: display.colors.textMuted,
-          }}
-        >
+        <Text style={{ fontFamily: 'Nunito_400Regular', fontSize: display.fontSize.sm, color: display.colors.textMuted }}>
           {t('settings.footer')}
         </Text>
       </View>
-    </View>
-  );
-}
-
-// Composants utilitaires
-function InputField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = 'default',
-  multiline = false,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  keyboardType?: 'default' | 'phone-pad' | 'email-address';
-  multiline?: boolean;
-}) {
-  const display = useDisplaySettings();
-
-  return (
-    <View>
-      <Text
-        className="mb-2"
-        style={{
-          fontFamily: 'Nunito_600SemiBold',
-          fontSize: display.fontSize.sm,
-          color: display.colors.textMuted,
-        }}
-      >
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        keyboardType={keyboardType}
-        multiline={multiline}
-        className="rounded-xl px-4 py-4"
-        style={{
-          fontFamily: 'Nunito_400Regular',
-          fontSize: display.fontSize.lg,
-          color: display.colors.text,
-          backgroundColor: display.isDarkMode ? '#1F2937' : '#F9FAFB',
-          minHeight: multiline ? 100 : undefined,
-          textAlignVertical: multiline ? 'top' : 'center',
-        }}
-      />
-    </View>
-  );
-}
-
-function ToggleRow({
-  label,
-  description,
-  value,
-  onToggle,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  onToggle: () => void;
-}) {
-  const display = useDisplaySettings();
-
-  return (
-    <View className="flex-row items-center justify-between">
-      <View className="flex-1 mr-4">
-        <Text
-          style={{
-            fontFamily: 'Nunito_600SemiBold',
-            fontSize: display.fontSize.lg,
-            color: display.colors.text,
-          }}
-        >
-          {label}
-        </Text>
-        <Text
-          style={{
-            fontFamily: 'Nunito_400Regular',
-            fontSize: display.fontSize.sm,
-            color: display.colors.textMuted,
-          }}
-        >
-          {description}
-        </Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onToggle();
-        }}
-        trackColor={{ false: '#E5E7EB', true: '#93C5FD' }}
-        thumbColor={value ? '#2563EB' : '#9CA3AF'}
-      />
     </View>
   );
 }

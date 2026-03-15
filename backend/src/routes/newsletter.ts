@@ -1,83 +1,126 @@
 import { Hono } from "hono";
+import { getSupabase } from "../lib/supabase";
 
 const newsletterRouter = new Hono();
 
-// In-memory store for newsletter subscribers (in production, use a database)
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 interface NewsletterSubscriber {
   id: string;
   email: string;
   name?: string;
   source: string;
-  createdAt: number;
-  unsubscribedAt?: number;
-  resubscribedAt?: number;
+  created_at: string;
+  unsubscribed_at?: string | null;
+  resubscribed_at?: string | null;
 }
 
-const subscribers = new Map<string, NewsletterSubscriber>();
+// In-memory fallback when Supabase is not configured
+const memorySubscribers = new Map<string, NewsletterSubscriber>();
+
+// ─── Storage Helpers ────────────────────────────────────────────────────────
+
+async function getSubscriberByEmail(
+  email: string
+): Promise<NewsletterSubscriber | null> {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .select("*")
+      .eq("email", email)
+      .single();
+    if (error || !data) return null;
+    return data as NewsletterSubscriber;
+  }
+  return memorySubscribers.get(email) || null;
+}
+
+async function upsertSubscriber(
+  subscriber: NewsletterSubscriber
+): Promise<NewsletterSubscriber> {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .upsert(subscriber, { onConflict: "email" })
+      .select()
+      .single();
+    if (error) throw new Error(`Supabase upsert error: ${error.message}`);
+    return data as NewsletterSubscriber;
+  }
+  memorySubscribers.set(subscriber.email, subscriber);
+  return subscriber;
+}
+
+async function getAllSubscribers(): Promise<NewsletterSubscriber[]> {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(`Supabase select error: ${error.message}`);
+    return (data || []) as NewsletterSubscriber[];
+  }
+  return Array.from(memorySubscribers.values()).sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
+// ─── Routes ─────────────────────────────────────────────────────────────────
 
 /**
  * POST /api/newsletter/subscribe
- * Subscribe to the newsletter
  */
 newsletterRouter.post("/subscribe", async (c) => {
   try {
     const body = await c.req.json();
     const { email, name, source } = body;
 
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes("@")) {
       return c.json({ error: "Invalid email" }, 400);
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if already subscribed
-    const existing = subscribers.get(normalizedEmail);
-
+    const existing = await getSubscriberByEmail(normalizedEmail);
     if (existing) {
-      if (existing.unsubscribedAt) {
-        // Re-subscribe
-        existing.unsubscribedAt = undefined;
-        existing.resubscribedAt = Date.now();
-        subscribers.set(normalizedEmail, existing);
-
+      if (existing.unsubscribed_at) {
+        existing.unsubscribed_at = null;
+        existing.resubscribed_at = new Date().toISOString();
+        await upsertSubscriber(existing);
         console.log(`[Newsletter] Re-subscribed: ${normalizedEmail}`);
         return c.json({
           success: true,
-          message: "Bon retour ! Vous êtes à nouveau inscrit."
+          message: "Bon retour ! Vous êtes à nouveau inscrit.",
         });
       }
       return c.json({
         success: true,
-        message: "Vous êtes déjà inscrit à notre newsletter."
+        message: "Vous êtes déjà inscrit à notre newsletter.",
       });
     }
 
-    // Create new subscriber
     const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const subscriber: NewsletterSubscriber = {
+
+    const subscriber = await upsertSubscriber({
       id,
       email: normalizedEmail,
       name: name || undefined,
-      source: source || 'app',
-      createdAt: Date.now(),
-    };
+      source: source || "app",
+      created_at: new Date().toISOString(),
+    });
 
-    subscribers.set(normalizedEmail, subscriber);
-
-    console.log(`[Newsletter] New subscriber: ${normalizedEmail} (source: ${source || 'app'})`);
-
-    // In production, you would:
-    // 1. Save to database
-    // 2. Add to email marketing platform (Mailchimp, SendGrid, etc.)
-    // 3. Send welcome email
+    console.log(
+      `[Newsletter] New subscriber: ${normalizedEmail} (source: ${source || "app"})`
+    );
 
     return c.json({
       success: true,
       message: "Bienvenue ! Vous recevrez nos conseils chaque semaine.",
-      subscriber: {
-        id: subscriber.id,
-        email: subscriber.email,
-      },
+      subscriber: { id: subscriber.id, email: subscriber.email },
     });
   } catch (error) {
     console.error("[Newsletter] Subscribe error:", error);
@@ -87,7 +130,6 @@ newsletterRouter.post("/subscribe", async (c) => {
 
 /**
  * POST /api/newsletter/unsubscribe
- * Unsubscribe from the newsletter
  */
 newsletterRouter.post("/unsubscribe", async (c) => {
   try {
@@ -99,20 +141,20 @@ newsletterRouter.post("/unsubscribe", async (c) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const subscriber = subscribers.get(normalizedEmail);
+    const subscriber = await getSubscriberByEmail(normalizedEmail);
 
     if (!subscriber) {
       return c.json({ error: "Subscriber not found" }, 404);
     }
 
-    subscriber.unsubscribedAt = Date.now();
-    subscribers.set(normalizedEmail, subscriber);
+    subscriber.unsubscribed_at = new Date().toISOString();
+    await upsertSubscriber(subscriber);
 
     console.log(`[Newsletter] Unsubscribed: ${normalizedEmail}`);
 
     return c.json({
       success: true,
-      message: "Vous avez été désinscrit avec succès."
+      message: "Vous avez été désinscrit avec succès.",
     });
   } catch (error) {
     console.error("[Newsletter] Unsubscribe error:", error);
@@ -122,37 +164,46 @@ newsletterRouter.post("/unsubscribe", async (c) => {
 
 /**
  * GET /api/newsletter/stats
- * Get newsletter statistics (admin endpoint)
  */
 newsletterRouter.get("/stats", async (c) => {
   try {
-    const allSubscribers = Array.from(subscribers.values());
-    const activeSubscribers = allSubscribers.filter(s => !s.unsubscribedAt);
+    const allSubscribers = await getAllSubscribers();
+    const activeSubscribers = allSubscribers.filter(
+      (s) => !s.unsubscribed_at
+    );
 
     const now = Date.now();
-    const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000);
-    const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    const newThisMonth = activeSubscribers.filter(s => s.createdAt >= oneMonthAgo).length;
-    const newThisWeek = activeSubscribers.filter(s => s.createdAt >= oneWeekAgo).length;
+    const newThisMonth = activeSubscribers.filter(
+      (s) => new Date(s.created_at).getTime() >= oneMonthAgo
+    ).length;
+    const newThisWeek = activeSubscribers.filter(
+      (s) => new Date(s.created_at).getTime() >= oneWeekAgo
+    ).length;
 
-    // Group by source
-    const bySource = activeSubscribers.reduce((acc, s) => {
-      acc[s.source] = (acc[s.source] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const bySource = activeSubscribers.reduce(
+      (acc, s) => {
+        acc[s.source] = (acc[s.source] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return c.json({
       success: true,
       stats: {
         totalSubscribers: activeSubscribers.length,
-        totalUnsubscribed: allSubscribers.filter(s => s.unsubscribedAt).length,
+        totalUnsubscribed: allSubscribers.filter((s) => s.unsubscribed_at)
+          .length,
         newThisMonth,
         newThisWeek,
         bySource,
-        growthRate: activeSubscribers.length > 0
-          ? ((newThisMonth / activeSubscribers.length) * 100).toFixed(1)
-          : 0,
+        growthRate:
+          activeSubscribers.length > 0
+            ? ((newThisMonth / activeSubscribers.length) * 100).toFixed(1)
+            : 0,
       },
     });
   } catch (error) {
@@ -163,24 +214,27 @@ newsletterRouter.get("/stats", async (c) => {
 
 /**
  * GET /api/newsletter/subscribers
- * Get all subscribers (admin endpoint - should be protected in production)
  */
 newsletterRouter.get("/subscribers", async (c) => {
-  const allSubscribers = Array.from(subscribers.values())
-    .sort((a, b) => b.createdAt - a.createdAt);
+  try {
+    const allSubscribers = await getAllSubscribers();
 
-  return c.json({
-    success: true,
-    count: allSubscribers.length,
-    subscribers: allSubscribers.map(s => ({
-      id: s.id,
-      email: s.email,
-      name: s.name,
-      source: s.source,
-      createdAt: new Date(s.createdAt).toISOString(),
-      status: s.unsubscribedAt ? 'unsubscribed' : 'active',
-    })),
-  });
+    return c.json({
+      success: true,
+      count: allSubscribers.length,
+      subscribers: allSubscribers.map((s) => ({
+        id: s.id,
+        email: s.email,
+        name: s.name,
+        source: s.source,
+        createdAt: s.created_at,
+        status: s.unsubscribed_at ? "unsubscribed" : "active",
+      })),
+    });
+  } catch (error) {
+    console.error("[Newsletter] Subscribers error:", error);
+    return c.json({ error: "Failed to get subscribers" }, 500);
+  }
 });
 
 export { newsletterRouter };
