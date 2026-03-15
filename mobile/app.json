@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "InstaSales AI",
-    "slug": "monadmin-ai",
+    "slug": "senioradmin",
     "scheme": "vibecode",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,6 +29,13 @@
     "experiments": {
       "typedRoutes": true
     },
-    "icon": "./icon.png"
+    "icon": "./icon.png",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7102d0f2-8ca5-49cd-87b6-6772539f86d3"
+      }
+    },
+    "owner": "tiwounti"
   }
 }
