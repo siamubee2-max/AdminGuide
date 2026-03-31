@@ -74,6 +74,7 @@
     "expo-linear-gradient": "~14.1.4",
     "expo-linking": "~7.1.4",
     "expo-live-photo": "~0.1.4",
+    "expo-location": "~18.1.6",
     "expo-mail-composer": "~14.1.4",
     "expo-manifests": "~0.16.4",
     "expo-mesh-gradient": "0.3.4",
@@ -165,7 +166,6 @@
   "patchedDependencies": {
     "react-native@0.79.6": "patches/react-native@0.79.6.patch",
     "expo-asset@11.1.5": "patches/expo-asset@11.1.5.patch",
-    "expo-location@15.1.1": "patches/expo-location@15.1.1.patch",
     "@react-native-menu/menu@1.2.2": "patches/@react-native-menu%2Fmenu@1.2.2.patch"
   }
 }
