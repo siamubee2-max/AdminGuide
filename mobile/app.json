@@ -21,7 +21,8 @@
       }
     },
     "android": {
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.vibecode.monadminai.joqnph"
     },
     "plugins": [
       "expo-router"
