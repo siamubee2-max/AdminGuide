@@ -1,5 +1,5 @@
 diff --git a/android/build.gradle b/android/build.gradle
-index 1234567..abcdef0 100644
+index b230e4d840ce752c9f7388bf7ff689073a58fa59..d71707324326215cde41cd91a38778ce53dc7de7 100644
 --- a/android/build.gradle
 +++ b/android/build.gradle
 @@ -37,7 +37,7 @@ buildscript {
@@ -10,3 +10,4 @@ index 1234567..abcdef0 100644
 +  archiveClassifier = 'sources'
    from android.sourceSets.main.java.srcDirs
  }
+ 
