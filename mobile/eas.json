@@ -16,7 +16,8 @@
     "production": {
       "env": {
         "EXPO_PUBLIC_VIBECODE_BACKEND_URL": "https://chimp-broiling.vibecode.run",
-        "EXPO_PUBLIC_BACKEND_URL": "https://chimp-broiling.vibecode.run"
+        "EXPO_PUBLIC_BACKEND_URL": "https://chimp-broiling.vibecode.run",
+        "EXPO_PUBLIC_APP_API_KEY": "REPLACE_WITH_SECURE_KEY"
       },
       "ios": {
         "distribution": "store"

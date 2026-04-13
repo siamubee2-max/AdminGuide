@@ -8,6 +8,13 @@ const BACKEND_URL =
   process.env.EXPO_PUBLIC_BACKEND_URL ||
   'http://localhost:3000';
 
+const APP_API_KEY = process.env.EXPO_PUBLIC_APP_API_KEY || '';
+
+const apiHeaders: Record<string, string> = {
+  'Content-Type': 'application/json',
+  ...(APP_API_KEY ? { 'X-App-Key': APP_API_KEY } : {}),
+};
+
 interface AnalysisResult {
   type: string;
   organisme: string;
@@ -66,7 +73,7 @@ export async function analyzeDocumentWithAI(
   try {
     const response = await fetch(`${BACKEND_URL}/api/ai/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: apiHeaders,
       body: JSON.stringify({ imageBase64, language }),
     });
 
@@ -96,7 +103,7 @@ export async function generateResponseWithAI(
   try {
     const response = await fetch(`${BACKEND_URL}/api/ai/generate-response`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: apiHeaders,
       body: JSON.stringify({ document, userInfo, language }),
     });
 
@@ -171,7 +178,7 @@ export async function transcribeAudio(
   try {
     const response = await fetch(`${BACKEND_URL}/api/ai/speech-to-text`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: apiHeaders,
       body: JSON.stringify({ audioBase64, language }),
     });
 
@@ -198,7 +205,7 @@ export async function synthesizeSpeech(
   try {
     const response = await fetch(`${BACKEND_URL}/api/ai/text-to-speech`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: apiHeaders,
       body: JSON.stringify({ text, language }),
     });
 

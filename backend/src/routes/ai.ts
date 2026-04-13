@@ -143,6 +143,11 @@ aiRouter.post("/analyze", async (c) => {
       return c.json({ error: "imageBase64 is required" }, 400);
     }
 
+    // Limit image size to 5MB base64 (~3.75MB raw)
+    if (imageBase64.length > 5 * 1024 * 1024) {
+      return c.json({ error: "Image too large. Maximum 5MB." }, 413);
+    }
+
     // Try Anthropic first, then OpenAI
     if (ANTHROPIC_API_KEY) {
       const result = await analyzeWithClaude(imageBase64, language);
@@ -221,7 +226,11 @@ Write an appropriate response letter.`;
         const content = data.content[0]?.text || "";
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          return c.json({ success: true, result: JSON.parse(jsonMatch[0]) });
+          try {
+            return c.json({ success: true, result: JSON.parse(jsonMatch[0]) });
+          } catch {
+            console.error("[AI] Failed to parse JSON from response");
+          }
         }
       }
     }
@@ -242,6 +251,11 @@ aiRouter.post("/speech-to-text", async (c) => {
 
     if (!audioBase64) {
       return c.json({ error: "audioBase64 is required" }, 400);
+    }
+
+    // Limit audio size to 10MB base64 (~7.5MB raw)
+    if (audioBase64.length > 10 * 1024 * 1024) {
+      return c.json({ error: "Audio too large. Maximum 10MB." }, 413);
     }
 
     if (!OPENAI_API_KEY) {

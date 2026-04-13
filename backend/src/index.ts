@@ -8,7 +8,7 @@ import { b2bRouter } from "./routes/b2b";
 import { newsletterRouter } from "./routes/newsletter";
 import { aiRouter } from "./routes/ai";
 import { logger } from "hono/logger";
-import { adminAuth, rateLimit } from "./middleware/auth";
+import { adminAuth, appKeyAuth, rateLimit } from "./middleware/auth";
 
 const app = new Hono();
 
@@ -37,7 +37,8 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 // Rate limiting on public endpoints
 app.use("/api/b2b/contact", rateLimit({ windowMs: 60 * 60 * 1000, maxRequests: 5, keyPrefix: "b2b" }));
 app.use("/api/newsletter/subscribe", rateLimit({ windowMs: 60 * 60 * 1000, maxRequests: 10, keyPrefix: "nl" }));
-app.use("/api/ai/*", rateLimit({ windowMs: 60 * 1000, maxRequests: 20, keyPrefix: "ai" }));
+app.use("/api/ai/*", appKeyAuth);
+app.use("/api/ai/*", rateLimit({ windowMs: 60 * 1000, maxRequests: 5, keyPrefix: "ai" }));
 
 // Admin authentication on sensitive endpoints
 app.use("/api/b2b/leads", adminAuth);

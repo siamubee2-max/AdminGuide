@@ -12,6 +12,32 @@ import { Context, Next } from "hono";
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 
+/**
+ * App API Key Authentication Middleware
+ *
+ * Protects AI endpoints from unauthorized access by requiring
+ * a valid app key in the X-App-Key header. This prevents external
+ * abuse of expensive AI API calls.
+ */
+
+const APP_API_KEY = process.env.APP_API_KEY;
+
+export async function appKeyAuth(c: Context, next: Next) {
+  if (!APP_API_KEY) {
+    // If no key configured, allow requests (development mode)
+    await next();
+    return;
+  }
+
+  const appKey = c.req.header("X-App-Key");
+
+  if (!appKey || appKey !== APP_API_KEY) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  await next();
+}
+
 export async function adminAuth(c: Context, next: Next) {
   // If no ADMIN_API_KEY is configured, block all admin access in production
   if (!ADMIN_API_KEY) {

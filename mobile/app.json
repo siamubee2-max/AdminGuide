@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "InstaSales AI",
+    "name": "MonAdmin AI",
     "slug": "adminguide",
     "scheme": "vibecode",
     "version": "1.0.0",
@@ -11,11 +11,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vibecode.monadminai.joqnph",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
-        "NSCameraUsageDescription": "InstaSales AI uses the camera to capture new photos inside the app for your projects.",
-        "NSMicrophoneUsageDescription": "InstaSales AI uses the microphone to record audio clips that stay with your in-app creations.",
-        "NSSpeechRecognitionUsageDescription": "InstaSales AI uses speech recognition to turn your spoken words into text inside the app.",
+        "NSCameraUsageDescription": "MonAdmin AI utilise la caméra pour scanner vos documents administratifs.",
+        "NSMicrophoneUsageDescription": "MonAdmin AI utilise le microphone pour la dictée vocale de vos courriers.",
+        "NSSpeechRecognitionUsageDescription": "MonAdmin AI utilise la reconnaissance vocale pour transcrire vos paroles en texte.",
+        "NSPhotoLibraryUsageDescription": "MonAdmin AI accède à votre photothèque pour importer des documents à analyser.",
+        "NSLocationWhenInUseUsageDescription": "MonAdmin AI utilise votre position pour identifier les services administratifs proches de chez vous.",
         "UIBackgroundModes": [
           "remote-notification"
         ]
@@ -23,10 +25,44 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.vibecode.monadminai.joqnph"
+      "package": "com.vibecode.monadminai.joqnph",
+      "versionCode": 10
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      ["expo-build-properties", {
+        "ios": {
+          "privacyManifest": {
+            "NSPrivacyAccessedAPITypes": [
+              {
+                "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+                "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+              },
+              {
+                "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+                "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+              },
+              {
+                "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+                "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+              },
+              {
+                "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+                "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+              }
+            ],
+            "NSPrivacyCollectedDataTypes": [
+              {
+                "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePurchaseHistory",
+                "NSPrivacyCollectedDataTypeLinked": false,
+                "NSPrivacyCollectedDataTypeTracking": false,
+                "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+              }
+            ],
+            "NSPrivacyTracking": false
+          }
+        }
+      }]
     ],
     "experiments": {
       "typedRoutes": true
