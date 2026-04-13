@@ -457,10 +457,13 @@ export default function PremiumScreen() {
           {/* Plans */}
           {plans.map((plan, index) => {
             const isSelected = selectedPlan === plan.id;
-            const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
             const pkg = getPackageForPlan(plan.id);
-            const perMonth = billingPeriod === 'annual' && plan.annualPrice > 0
-              ? (plan.annualPrice / 12).toFixed(2)
+            // Use RevenueCat price if available, otherwise fall back to hardcoded
+            const rcPrice = pkg?.product?.price ?? null;
+            const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
+            const actualAnnualPrice = (billingPeriod === 'annual' && rcPrice != null) ? rcPrice : plan.annualPrice;
+            const perMonth = billingPeriod === 'annual' && actualAnnualPrice > 0
+              ? (actualAnnualPrice / 12).toFixed(2)
               : null;
 
             return (
@@ -566,7 +569,7 @@ export default function PremiumScreen() {
                           className="text-sm mt-1"
                           style={{ fontFamily: 'Nunito_400Regular', color: plan.color }}
                         >
-                          soit {perMonth.replace('.', ',')}€/mois • {plan.annualSavings}
+                          soit ~{perMonth.replace('.', ',')}€/mois • {plan.annualSavings}
                         </Text>
                       )}
                     </View>
