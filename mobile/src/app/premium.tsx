@@ -12,7 +12,7 @@ import {
   Zap,
   Shield,
   Users,
-  Bell
+  Bell,
   Download,
   Headphones,
   Sparkles,
