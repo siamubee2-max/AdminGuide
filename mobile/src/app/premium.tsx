@@ -12,7 +12,7 @@ import {
   Zap,
   Shield,
   Users,
-  Bell,
+  Bell
   Download,
   Headphones,
   Sparkles,
@@ -364,7 +364,7 @@ export default function PremiumScreen() {
       <SafeAreaView className="flex-1" edges={['top']}>
         {/* Close button */}
         <Animated.View
-          entering={FadeInDown.duration(400)}
+          entering={FadeInDown.duration(400)
           className="px-6 pt-4 flex-row justify-between items-center"
         >
           <View />
@@ -458,6 +458,7 @@ export default function PremiumScreen() {
           {plans.map((plan, index) => {
             const isSelected = selectedPlan === plan.id;
             const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
+            const pkg = getPackageForPlan(plan.id);
             const perMonth = billingPeriod === 'annual' && plan.annualPrice > 0
               ? (plan.annualPrice / 12).toFixed(2)
               : null;
@@ -550,7 +551,7 @@ export default function PremiumScreen() {
                             className="text-3xl text-white"
                             style={{ fontFamily: 'Nunito_800ExtraBold' }}
                           >
-                            {price.toFixed(2).replace('.', ',')}€
+                            {pkg?.product?.priceString ?? `${price.toFixed(2).replace('.', ',')}€`}
                           </Text>
                           <Text
                             className="text-slate-400 text-base ml-1"
@@ -725,6 +726,14 @@ export default function PremiumScreen() {
             <Text style={{ fontSize: 11, color: '#6366F1', textDecorationLine: 'underline' }}>Politique de confidentialité</Text>
           </Pressable>
         </View>
+        <Pressable
+          onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+          style={{ marginTop: 12, alignItems: 'center' }}
+        >
+          <Text style={{ fontSize: 13, color: '#6366F1', fontFamily: 'Nunito_400Regular', textDecorationLine: 'underline' }}>
+            Gérer mon abonnement
+          </Text>
+        </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
