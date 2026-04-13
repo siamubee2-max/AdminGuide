@@ -48,12 +48,78 @@ interface PricingPlan {
   popular?: boolean;
 }
 
+interface B2B2CPlan {
+  id: string;
+  name: string;
+  target: string;
+  price: string;
+  priceNote: string;
+  description: string;
+  features: string[];
+  color: string;
+  icon: string;
+}
+
+const B2B2C_PLANS: B2B2CPlan[] = [
+  {
+    id: 'mutuelle',
+    name: 'Mutuelle & Assurance',
+    target: 'Offrez MonAdmin à vos adhérents seniors',
+    price: '2,50€',
+    priceNote: '/adhérent/mois',
+    description: 'Réduisez les appels au service client en aidant vos adhérents à comprendre leurs courriers de remboursement, devis, et relevés.',
+    features: [
+      'Accès complet MonAdmin pour chaque adhérent',
+      'Marque blanche personnalisable',
+      'Intégration espace adhérent (SSO)',
+      'Tableau de bord engagement',
+      'Réduction des appels entrants estimée -30%',
+    ],
+    color: '#7C3AED',
+    icon: '🏥',
+  },
+  {
+    id: 'banque',
+    name: 'Banque & Finance',
+    target: 'Fidélisez votre clientèle senior',
+    price: '3€',
+    priceNote: '/client/mois',
+    description: 'Vos clients seniors comprennent enfin leurs relevés, avis d\'imposition et courriers bancaires. Un service premium qui renforce la relation.',
+    features: [
+      'Accès complet MonAdmin pour chaque client',
+      'Co-branding avec votre banque',
+      'Analyse automatique des relevés',
+      'Alertes prélèvements & échéances',
+      'Support dédié aux conseillers',
+    ],
+    color: '#0891B2',
+    icon: '🏦',
+  },
+  {
+    id: 'collectivite',
+    name: 'Collectivités & CCAS',
+    target: 'Accompagnez vos administrés',
+    price: 'Sur devis',
+    priceNote: 'tarif dégressif',
+    description: 'Mairies, CCAS, départements : déployez MonAdmin pour lutter contre le non-recours aux droits et l\'exclusion numérique des seniors.',
+    features: [
+      'Déploiement pour votre territoire',
+      'Formation des agents France Services',
+      'Statistiques anonymisées d\'usage',
+      'Accompagnement inclusion numérique',
+      'Éligible financements publics (CNSA, ARS)',
+    ],
+    color: '#DC2626',
+    icon: '🏛️',
+  },
+];
+
 const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
     description: 'Pour les petites structures',
-    price: '49€',
+    price: '79€',
     priceNote: '/mois',
     residents: 'Jusqu\'à 20 résidents',
     features: [
@@ -61,14 +127,14 @@ const PRICING_PLANS: PricingPlan[] = [
       'Analyse IA des documents',
       'Alertes échéances',
       'Support email',
-      '1 compte gestionnaire',
+      '2 comptes gestionnaires',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
     description: 'Pour les résidences seniors',
-    price: '99€',
+    price: '149€',
     priceNote: '/mois',
     residents: 'Jusqu\'à 50 résidents',
     features: [
@@ -76,7 +142,7 @@ const PRICING_PLANS: PricingPlan[] = [
       'Dashboard multi-résidents',
       'Notifications familles',
       'Export rapports PDF',
-      '3 comptes gestionnaires',
+      '5 comptes gestionnaires',
       'Support prioritaire',
     ],
     popular: true,
@@ -85,9 +151,9 @@ const PRICING_PLANS: PricingPlan[] = [
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Pour les EHPAD & groupes',
-    price: '199€',
+    price: '299€',
     priceNote: '/mois',
-    residents: 'Jusqu\'à 150 résidents',
+    residents: 'Résidents illimités',
     features: [
       'Tout Pro +',
       'Multi-établissements',
@@ -251,7 +317,7 @@ export default function ProB2BScreen() {
               className="text-white/80 text-lg"
               style={{ fontFamily: 'Nunito_400Regular' }}
             >
-              La solution pour les professionnels du grand âge
+              La solution pour les professionnels et partenaires du grand âge
             </Text>
           </Animated.View>
         </View>
@@ -539,6 +605,104 @@ export default function ProB2BScreen() {
                     {testimonial.role}
                   </Text>
                 </View>
+              </Animated.View>
+            ))}
+          </View>
+
+          {/* B2B2C Partnerships */}
+          <View className="px-6 mb-8">
+            <Animated.View entering={FadeIn.duration(400).delay(700)}>
+              <View
+                className="rounded-2xl p-5 mb-4"
+                style={{ backgroundColor: '#FDF4FF', borderWidth: 1, borderColor: '#E9D5FF' }}
+              >
+                <Text
+                  className="text-xl text-gray-800 mb-1"
+                  style={{ fontFamily: 'Nunito_800ExtraBold' }}
+                >
+                  Partenariats B2B2C
+                </Text>
+                <Text
+                  className="text-gray-500 mb-4"
+                  style={{ fontFamily: 'Nunito_400Regular' }}
+                >
+                  Offrez MonAdmin à vos clients, adhérents ou administrés
+                </Text>
+              </View>
+            </Animated.View>
+
+            {B2B2C_PLANS.map((plan, index) => (
+              <Animated.View
+                key={plan.id}
+                entering={FadeInUp.duration(400).delay(750 + index * 100)}
+              >
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowContactForm(true);
+                  }}
+                  className="rounded-3xl p-5 mb-4 active:scale-[0.98]"
+                  style={{ backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E5E7EB' }}
+                >
+                  <View className="flex-row items-center mb-3">
+                    <View
+                      className="w-12 h-12 rounded-xl items-center justify-center mr-3"
+                      style={{ backgroundColor: plan.color + '15' }}
+                    >
+                      <Text style={{ fontSize: 24 }}>{plan.icon}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-lg text-gray-800"
+                        style={{ fontFamily: 'Nunito_700Bold' }}
+                      >
+                        {plan.name}
+                      </Text>
+                      <Text
+                        className="text-sm"
+                        style={{ fontFamily: 'Nunito_400Regular', color: plan.color }}
+                      >
+                        {plan.target}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    className="text-gray-600 text-sm mb-3"
+                    style={{ fontFamily: 'Nunito_400Regular' }}
+                  >
+                    {plan.description}
+                  </Text>
+
+                  <View className="flex-row items-baseline mb-3">
+                    <Text
+                      className="text-2xl"
+                      style={{ fontFamily: 'Nunito_800ExtraBold', color: plan.color }}
+                    >
+                      {plan.price}
+                    </Text>
+                    <Text
+                      className="text-sm text-gray-500 ml-1"
+                      style={{ fontFamily: 'Nunito_400Regular' }}
+                    >
+                      {plan.priceNote}
+                    </Text>
+                  </View>
+
+                  <View className="border-t pt-3" style={{ borderColor: '#E5E7EB' }}>
+                    {plan.features.map((feature, i) => (
+                      <View key={i} className="flex-row items-center mb-2">
+                        <Check size={14} color={plan.color} />
+                        <Text
+                          className="text-sm ml-2 text-gray-600"
+                          style={{ fontFamily: 'Nunito_400Regular' }}
+                        >
+                          {feature}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </Pressable>
               </Animated.View>
             ))}
           </View>
