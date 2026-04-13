@@ -1,4 +1,4 @@
-name: EAS Build iOS Production
+name: EAS Build & Submit iOS Production
 
 on:
   workflow_dispatch:
@@ -9,8 +9,8 @@ on:
       - 'mobile/**'
 
 jobs:
-  build:
-    name: EAS Build iOS
+  build-and-submit:
+    name: EAS Build & Submit iOS
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,4 +38,4 @@ jobs:
 
       - name: Build iOS production
         working-directory: mobile
-        run: eas build --platform ios --profile production --non-interactive
+        run: eas build --platform ios --profile production --non-interactive --auto-submit
