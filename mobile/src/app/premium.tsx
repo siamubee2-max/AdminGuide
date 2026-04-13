@@ -364,7 +364,7 @@ export default function PremiumScreen() {
       <SafeAreaView className="flex-1" edges={['top']}>
         {/* Close button */}
         <Animated.View
-          entering={FadeInDown.duration(400)
+          entering={FadeInDown.duration(400)}
           className="px-6 pt-4 flex-row justify-between items-center"
         >
           <View />
