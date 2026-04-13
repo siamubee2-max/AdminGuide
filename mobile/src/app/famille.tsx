@@ -39,10 +39,65 @@ import {
 } from '@/lib/state/family-store';
 import { useHistoryStore } from '@/lib/state/history-store';
 import { useTranslation } from '@/lib/i18n';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 export default function FamilleScreen() {
   const router = useRouter();
   const t = useTranslation();
+  const { isFamily } = usePremium();
+
+  // Redirect to premium if not on family plan
+  if (!isFamily) {
+    return (
+      <View className="flex-1 bg-white">
+        <LinearGradient
+          colors={['#047857', '#10B981', '#34D399']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+        <SafeAreaView className="flex-1 items-center justify-center px-8" edges={['top', 'bottom']}>
+          <Animated.View entering={FadeInDown.duration(600)}>
+            <View className="w-28 h-28 rounded-full bg-white/20 items-center justify-center mb-6 self-center">
+              <Users size={56} color="white" />
+            </View>
+            <Text
+              className="text-3xl text-white text-center mb-4"
+              style={{ fontFamily: 'Nunito_800ExtraBold' }}
+            >
+              Partage Familial
+            </Text>
+            <Text
+              className="text-lg text-white/80 text-center mb-8 leading-7"
+              style={{ fontFamily: 'Nunito_400Regular' }}
+            >
+              Partagez les documents avec votre famille, recevez des alertes en cas d'urgence et surveillez l'activité de votre proche.
+            </Text>
+            <Pressable
+              onPress={() => router.push('/premium')}
+              className="bg-white rounded-2xl px-8 py-4 self-center active:scale-95"
+            >
+              <Text
+                className="text-emerald-700 text-lg text-center"
+                style={{ fontFamily: 'Nunito_700Bold' }}
+              >
+                Découvrir le plan Famille
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.back()}
+              className="mt-4 self-center active:opacity-70"
+            >
+              <Text
+                className="text-white/70 text-base"
+                style={{ fontFamily: 'Nunito_400Regular' }}
+              >
+                Retour
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </SafeAreaView>
+      </View>
+    );
+  }
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);

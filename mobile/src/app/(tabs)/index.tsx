@@ -22,7 +22,9 @@ import { useDeviceType } from '@/lib/hooks/useDeviceType';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { QuickScanButton } from '@/components/QuickScanButton';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useUsageStore } from '@/lib/state/usage-store';
 import { useTranslation } from '@/lib/i18n';
+import { notificationService } from '@/lib/services/notification-service';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,18 +34,28 @@ export default function HomeScreen() {
   const documents = useDocumentStore((s) => s.documents);
   const loadDocuments = useDocumentStore((s) => s.loadDocuments);
   const isInitialized = useDocumentStore((s) => s.isInitialized);
+  const recordActivity = useUsageStore((s) => s.recordActivity);
 
   // Display settings and device info
   const display = useDisplaySettings();
   const device = useDeviceType();
-  const { isPremium, requirePremium } = usePremium();
+  const { isPremium, requirePremium, tier } = usePremium();
+  const scansRemaining = useUsageStore((s) => s.getScansRemaining)(tier);
 
-  // Load documents on mount
+  const inactivityAlertDays = useUsageStore((s) => s.inactivityAlertDays);
+
+  // Load documents on mount & record activity
   React.useEffect(() => {
     if (!isInitialized) {
       loadDocuments();
     }
-  }, [isInitialized]);
+    recordActivity();
+
+    // Family plan: reschedule inactivity alert on each app open
+    if (tier === 'family') {
+      notificationService.scheduleInactivityAlert(inactivityAlertDays, userPrenom);
+    }
+  }, [isInitialized, tier]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();

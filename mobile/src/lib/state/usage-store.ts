@@ -10,8 +10,12 @@ interface UsageState {
   lastScanDate: string | null;
   monthlyResetDate: string;
 
-  // History tracking for free tier (3-day limit)
+  // History tracking for free tier (7-day limit)
   documentViewHistory: { docId: string; viewedAt: string }[];
+
+  // Inactivity tracking (family plan)
+  lastActivityDate: string;
+  inactivityAlertDays: number;
 
   // Actions
   incrementScans: () => void;
@@ -20,16 +24,20 @@ interface UsageState {
   addDocumentView: (docId: string) => void;
   isDocumentAccessible: (docId: string, tier: PlanTier) => boolean;
   resetMonthlyScans: () => void;
+  recordActivity: () => void;
+  getDaysInactive: () => number;
+  isInactive: () => boolean;
+  setInactivityAlertDays: (days: number) => void;
 }
 
 const SCAN_LIMITS: Record<PlanTier, number> = {
-  free: 3,
-  essential: 15,
+  free: 2,
+  essential: Infinity,
   family: Infinity,
 };
 
 const HISTORY_DAYS_LIMIT: Record<PlanTier, number> = {
-  free: 3,
+  free: 7,
   essential: Infinity,
   family: Infinity,
 };
@@ -46,6 +54,8 @@ export const useUsageStore = create<UsageState>()(
       lastScanDate: null,
       monthlyResetDate: getMonthKey(),
       documentViewHistory: [],
+      lastActivityDate: new Date().toISOString(),
+      inactivityAlertDays: 3,
 
       incrementScans: () => {
         const state = get();
@@ -127,6 +137,26 @@ export const useUsageStore = create<UsageState>()(
           monthlyResetDate: getMonthKey(),
         });
       },
+
+      recordActivity: () => {
+        set({ lastActivityDate: new Date().toISOString() });
+      },
+
+      getDaysInactive: () => {
+        const state = get();
+        const lastActive = new Date(state.lastActivityDate);
+        const now = new Date();
+        return Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+      },
+
+      isInactive: () => {
+        const state = get();
+        return state.getDaysInactive() >= state.inactivityAlertDays;
+      },
+
+      setInactivityAlertDays: (days: number) => {
+        set({ inactivityAlertDays: days });
+      },
     }),
     {
       name: 'monadmin-usage',
@@ -135,13 +165,6 @@ export const useUsageStore = create<UsageState>()(
   )
 );
 
-// Helper hook to get current user's tier
-export const usePlanTier = (): PlanTier => {
-  // This will be replaced with actual RevenueCat check
-  // For now, return 'free' as default
-  return 'free';
-};
-
 // Helper to check feature access
 export const canAccessFeature = (feature: string, tier: PlanTier): boolean => {
   const featureAccess: Record<string, PlanTier[]> = {
@@ -149,16 +172,17 @@ export const canAccessFeature = (feature: string, tier: PlanTier): boolean => {
     'ai_analysis_full': ['essential', 'family'],
     'all_categories': ['essential', 'family'],
     'unlimited_history': ['essential', 'family'],
+    'unlimited_scans': ['essential', 'family'],
     'text_search': ['essential', 'family'],
     'voice_search': ['essential', 'family'],
     'multilingual': ['essential', 'family'],
     'family_sharing': ['family'],
     'helper_alerts': ['family'],
+    'inactivity_alerts': ['family'],
     'auto_responses': ['family'],
     'deadline_reminders': ['family'],
     'pdf_export': ['family'],
     'priority_support': ['family'],
-    'unlimited_scans': ['family'],
   };
 
   const allowedTiers = featureAccess[feature];

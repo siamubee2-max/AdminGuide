@@ -114,7 +114,7 @@ export default function ResultatScreen() {
   } = useNotifications();
 
   const addAction = useHistoryStore((s) => s.addAction);
-  const { requirePremium } = usePremium();
+  const { requirePremium, requireFamily, requireFeature } = usePremium();
 
   // Detect deadlines and generate auto-reminders
   const detectedDeadlines = useMemo(() => {
@@ -189,7 +189,7 @@ export default function ResultatScreen() {
   const urgenceStyle = URGENCE_STYLES[currentDocument.urgence];
 
   const handleReadAloud = async (mode?: ReadMode) => {
-    if (!requirePremium()) return;
+    if (!requireFeature('voice_reading')) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (isSpeaking) {
@@ -233,7 +233,7 @@ export default function ResultatScreen() {
   };
 
   const handleGenerateResponse = async () => {
-    if (!requirePremium()) return;
+    if (!requireFeature('auto_responses')) return;
     setShowResponseModal(true);
     setIsGenerating(true);
 
@@ -269,7 +269,7 @@ export default function ResultatScreen() {
   };
 
   const handleOpenReminderModal = async () => {
-    if (!requirePremium()) return;
+    if (!requireFeature('deadline_reminders')) return;
     // Check/request permission first
     if (!notificationsEnabled) {
       const granted = await requestPermission();
@@ -803,7 +803,7 @@ export default function ResultatScreen() {
 
             <Pressable
               onPress={() => {
-                if (!requirePremium()) return;
+                if (!requireFeature('family_sharing')) return;
                 setShowShareModal(true);
               }}
               className="rounded-3xl overflow-hidden active:scale-[0.98]"

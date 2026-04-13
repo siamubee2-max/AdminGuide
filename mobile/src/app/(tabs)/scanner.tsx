@@ -26,9 +26,10 @@ import { useSettingsStore } from '@/lib/state/settings-store';
 import { analyzeDocumentWithAI } from '@/lib/services/ai-service';
 import { Document, URGENCE_STYLES } from '@/lib/types';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { useUsageStore } from '@/lib/state/usage-store';
 import { useTranslation } from '@/lib/i18n';
 
-type ScanState = 'ready' | 'capturing' | 'preview' | 'analyzing' | 'error';
+type ScanState = 'ready' | 'capturing' | 'preview' | 'analyzing' | 'error' | 'limit_reached';
 
 export default function ScannerScreen() {
   const t = useTranslation();
@@ -45,7 +46,10 @@ export default function ScannerScreen() {
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const addAction = useHistoryStore((s) => s.addAction);
   const language = useSettingsStore((s) => s.language);
-  const { requirePremium } = usePremium();
+  const { tier, requirePremium } = usePremium();
+  const canScan = useUsageStore((s) => s.canScan);
+  const getScansRemaining = useUsageStore((s) => s.getScansRemaining);
+  const incrementScans = useUsageStore((s) => s.incrementScans);
 
   // Reset scanner state when screen comes into focus
   useFocusEffect(
@@ -143,7 +147,13 @@ export default function ScannerScreen() {
 
   const handleAnalyze = async () => {
     if (!capturedImage) return;
-    if (!requirePremium()) return;
+
+    // Check scan quota for free tier
+    if (!canScan(tier)) {
+      setScanState('limit_reached');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
 
     setScanState('analyzing');
     setAnalysisStep(t('scanner.step_reading'));
@@ -196,7 +206,8 @@ export default function ScannerScreen() {
 
       addDocument(newDocument);
       setCurrentDocument(newDocument);
-      
+      incrementScans();
+
       // Track in history
       addAction({
         type: 'scan',
@@ -358,7 +369,27 @@ export default function ScannerScreen() {
               backgroundColor: '#0F172A',
             }}
           >
-            {scanState === 'preview' || scanState === 'analyzing' || scanState === 'error' ? (
+            {scanState === 'limit_reached' ? (
+              <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#0F172A' }}>
+                {capturedImage && (
+                  <Image source={{ uri: capturedImage }} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.3 }} resizeMode="cover" />
+                )}
+                <Animated.View entering={FadeIn.duration(300)} className="items-center p-8 rounded-3xl mx-6" style={{ backgroundColor: 'rgba(255,255,255,0.95)' }}>
+                  <View className="w-20 h-20 rounded-full items-center justify-center mb-5" style={{ backgroundColor: '#FEF3C7' }}>
+                    <Text style={{ fontSize: 40 }}>🔒</Text>
+                  </View>
+                  <Text className="text-2xl text-gray-800 mb-2 text-center" style={{ fontFamily: 'Nunito_800ExtraBold' }}>
+                    Limite atteinte
+                  </Text>
+                  <Text className="text-base text-gray-500 mb-3 text-center" style={{ fontFamily: 'Nunito_400Regular' }}>
+                    Vous avez utilisé vos {'\n'}2 scans gratuits ce mois-ci
+                  </Text>
+                  <Text className="text-sm text-blue-600 text-center" style={{ fontFamily: 'Nunito_700Bold' }}>
+                    Passez à Essentiel pour des scans illimités
+                  </Text>
+                </Animated.View>
+              </View>
+            ) : scanState === 'preview' || scanState === 'analyzing' || scanState === 'error' ? (
               <View className="flex-1">
                 {capturedImage && (
                   <Image
@@ -550,6 +581,32 @@ export default function ScannerScreen() {
                   {t('scanner.captured')}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {scanState === 'limit_reached' && (
+            <View className="space-y-4">
+              <Pressable
+                onPress={() => router.push('/premium')}
+                className="rounded-3xl py-5 flex-row items-center justify-center active:scale-[0.98]"
+                style={{ backgroundColor: '#2563EB' }}
+              >
+                <Text
+                  className="text-2xl text-white"
+                  style={{ fontFamily: 'Nunito_800ExtraBold' }}
+                >
+                  Passer à Essentiel
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleRetake}
+                className="rounded-3xl py-4 flex-row items-center justify-center active:opacity-80"
+                style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}
+              >
+                <Text className="text-lg text-white" style={{ fontFamily: 'Nunito_600SemiBold' }}>
+                  Retour
+                </Text>
+              </Pressable>
             </View>
           )}
 

@@ -42,7 +42,7 @@ export default function VocalScreen() {
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
   const vitesseVocale = useSettingsStore((s) => s.vitesseVocale);
   const language = useSettingsStore((s) => s.language);
-  const { requirePremium } = usePremium();
+  const { requireFeature } = usePremium();
   const volumeVocal = useSettingsStore((s) => s.volumeVocal);
   const addAction = useHistoryStore((s) => s.addAction);
 
@@ -226,7 +226,7 @@ export default function VocalScreen() {
   }, [documents, speak, router, setCurrentDocument]);
 
   const toggleListening = async () => {
-    if (voiceState === 'idle' && !requirePremium()) return;
+    if (voiceState === 'idle' && !requireFeature('voice_reading')) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     if (voiceState === 'listening') {
@@ -260,7 +260,7 @@ export default function VocalScreen() {
   };
 
   const handleExamplePress = async (text: string) => {
-    if (!requirePremium()) return;
+    if (!requireFeature('voice_reading')) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTranscript(text);
     await handleVoiceCommand(text);

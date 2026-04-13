@@ -9,6 +9,8 @@ import { useDocumentStore } from '@/lib/state/document-store';
 import { CATEGORIES, URGENCE_STYLES, DocumentCategory, Document } from '@/lib/types';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useTranslation } from '@/lib/i18n';
+import { usePremium } from '@/lib/hooks/usePremium';
+import { getAvailableCategories } from '@/lib/state/usage-store';
 
 const CATEGORY_COLORS = {
   tous: { bg: '#F3F4F6', border: '#D1D5DB', icon: '#6B7280', text: '#374151' },
@@ -30,11 +32,29 @@ export default function DocumentsScreen() {
   const setSelectedCategory = useDocumentStore((s) => s.setSelectedCategory);
   const setCurrentDocument = useDocumentStore((s) => s.setCurrentDocument);
 
+  const { tier } = usePremium();
+
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searchFocused, setSearchFocused] = React.useState(false);
 
   const filteredDocuments = useMemo(() => {
     let filtered = documents;
+
+    // Apply 7-day history limit for free tier
+    if (tier === 'free') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      filtered = filtered.filter((doc) => {
+        if (!doc.dateAjout) return true;
+        return new Date(doc.dateAjout) >= sevenDaysAgo;
+      });
+
+      // Restrict categories for free tier
+      const allowedCategories = getAvailableCategories('free');
+      if (selectedCategory !== 'tous' && !allowedCategories.includes(selectedCategory)) {
+        return [];
+      }
+    }
 
     if (selectedCategory !== 'tous') {
       filtered = filtered.filter((doc) => doc.categorie === selectedCategory);
@@ -51,7 +71,7 @@ export default function DocumentsScreen() {
     }
 
     return filtered;
-  }, [documents, selectedCategory, searchQuery]);
+  }, [documents, selectedCategory, searchQuery, tier]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<DocumentCategory, number> = {

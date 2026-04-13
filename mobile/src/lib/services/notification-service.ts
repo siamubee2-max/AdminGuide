@@ -345,6 +345,50 @@ class NotificationService {
     await Notifications.dismissAllNotificationsAsync();
     await this.setBadgeCount(0);
   }
+
+  // Schedule inactivity alert for family plan
+  // Called on each app open — cancels previous and reschedules
+  async scheduleInactivityAlert(daysUntilAlert: number, seniorName: string): Promise<void> {
+    try {
+      // Cancel existing inactivity alert
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const notif of scheduled) {
+        if (notif.content.data?.type === 'inactivity_alert') {
+          await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+        }
+      }
+
+      // Schedule new one
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${seniorName} n'a pas ouvert MonAdmin`,
+          body: `Cela fait ${daysUntilAlert} jours que ${seniorName} n'a pas consulté ses courriers. Pensez à prendre de ses nouvelles.`,
+          data: { type: 'inactivity_alert' },
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: daysUntilAlert * 24 * 60 * 60,
+        },
+      });
+    } catch (error) {
+      console.error('Error scheduling inactivity alert:', error);
+    }
+  }
+
+  // Cancel inactivity alert (called when app is opened)
+  async cancelInactivityAlert(): Promise<void> {
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const notif of scheduled) {
+        if (notif.content.data?.type === 'inactivity_alert') {
+          await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+        }
+      }
+    } catch (error) {
+      console.error('Error canceling inactivity alert:', error);
+    }
+  }
 }
 
 // Singleton instance
