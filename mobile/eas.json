@@ -17,7 +17,9 @@
       "env": {
         "EXPO_PUBLIC_VIBECODE_BACKEND_URL": "https://chimp-broiling.vibecode.run",
         "EXPO_PUBLIC_BACKEND_URL": "https://chimp-broiling.vibecode.run",
-        "EXPO_PUBLIC_APP_API_KEY": "f01580d3f5b73f605a22951c01577c426f442e6c6faf941f501c2b892b37add3"
+        "EXPO_PUBLIC_APP_API_KEY": "f01580d3f5b73f605a22951c01577c426f442e6c6faf941f501c2b892b37add3",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://juutuzjeytwyqsvynnkn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1dXR1empleXR3eXFzdnlubmtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMTY4NzcsImV4cCI6MjA5MTU5Mjg3N30.ZODqZ87G44XmbErLbk_rJzFmced9O_7MUiyp7KsrotE"
       },
       "ios": {
         "distribution": "store"
