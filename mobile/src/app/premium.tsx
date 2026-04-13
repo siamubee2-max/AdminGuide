@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, Dimensions } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, Dimensions, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -714,6 +714,17 @@ export default function PremiumScreen() {
               </Text>
             </View>
           </Animated.View>
+        {/* Mentions légales requises par Apple 3.1.2(c) */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8, marginBottom: 16, paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 11, color: '#94A3B8' }}>En vous abonnant, vous acceptez nos </Text>
+          <Pressable onPress={() => Linking.openURL('https://wifievmrlovkjlbnjgwr.supabase.co/storage/v1/object/public/legal/terms-of-use.html')}>
+            <Text style={{ fontSize: 11, color: '#6366F1', textDecorationLine: 'underline' }}>CGU</Text>
+          </Pressable>
+          <Text style={{ fontSize: 11, color: '#94A3B8' }}> et notre </Text>
+          <Pressable onPress={() => Linking.openURL('https://wifievmrlovkjlbnjgwr.supabase.co/storage/v1/object/public/legal/privacy-policy.html')}>
+            <Text style={{ fontSize: 11, color: '#6366F1', textDecorationLine: 'underline' }}>Politique de confidentialité</Text>
+          </Pressable>
+        </View>
         </ScrollView>
       </SafeAreaView>
     </View>
