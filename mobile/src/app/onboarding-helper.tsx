@@ -130,7 +130,14 @@ export default function OnboardingHelperScreen() {
       });
 
       if (!response.ok) {
-        Alert.alert('Erreur', 'Le service est temporairement indisponible. Réessayez plus tard.');
+        Alert.alert(
+          'Service indisponible',
+          'Le service de liaison est temporairement indisponible.',
+          [
+            { text: 'Réessayer', onPress: () => generateCode() },
+            { text: 'Configurer manuellement', onPress: () => router.replace('/onboarding') },
+          ],
+        );
         return;
       }
 
@@ -146,10 +153,10 @@ export default function OnboardingHelperScreen() {
       console.error('Error generating code:', error);
       Alert.alert(
         'Erreur de connexion',
-        'Impossible de contacter le serveur. Vérifiez votre connexion internet et réessayez.',
+        'Impossible de contacter le serveur. Vous pouvez réessayer ou configurer l\'app manuellement.',
         [
           { text: 'Réessayer', onPress: () => generateCode() },
-          { text: 'Annuler', style: 'cancel' },
+          { text: 'Configurer manuellement', onPress: () => router.replace('/onboarding') },
         ],
       );
     } finally {

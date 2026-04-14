@@ -30,6 +30,7 @@ import {
   restorePurchases,
   hasEntitlement,
   getPackage,
+  isRevenueCatEnabled,
 } from '@/lib/revenuecatClient';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { useTranslation } from '@/lib/i18n';
@@ -239,6 +240,7 @@ export default function PremiumScreen() {
 
   const isLoading = checkingPremium || loadingOfferings;
   const isPurchasing = purchaseMutation.isPending || restoreMutation.isPending;
+  const offeringsUnavailable = !loadingOfferings && !offerings?.current && !isRevenueCatEnabled();
 
   // If user has family plan, show success state
   if (currentPlan === 'family') {
@@ -632,6 +634,27 @@ export default function PremiumScreen() {
                   Continuer gratuitement
                 </Text>
               </Pressable>
+            ) : offeringsUnavailable ? (
+              <View>
+                <Pressable
+                  onPress={() => router.back()}
+                  className="rounded-2xl py-5 items-center"
+                  style={{ backgroundColor: '#475569' }}
+                >
+                  <Text
+                    className="text-white text-xl"
+                    style={{ fontFamily: 'Nunito_700Bold' }}
+                  >
+                    Continuer gratuitement
+                  </Text>
+                </Pressable>
+                <Text
+                  className="text-center mt-3"
+                  style={{ fontFamily: 'Nunito_400Regular', fontSize: 13, color: '#94A3B8' }}
+                >
+                  Les abonnements seront disponibles prochainement.
+                </Text>
+              </View>
             ) : (
               <Pressable
                 onPress={() => handlePurchase(selectedPlan)}

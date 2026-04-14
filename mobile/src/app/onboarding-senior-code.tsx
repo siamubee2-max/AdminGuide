@@ -128,7 +128,14 @@ export default function OnboardingSeniorCodeScreen() {
         } else if (response.status === 410) {
           Alert.alert('Code expiré', 'Ce code a expiré. Demandez un nouveau code à votre proche.');
         } else {
-          Alert.alert('Erreur', 'Le service est temporairement indisponible. Réessayez plus tard.');
+          Alert.alert(
+            'Service indisponible',
+            'Le service de liaison est temporairement indisponible.',
+            [
+              { text: 'Réessayer', onPress: () => validateCode() },
+              { text: 'Configurer manuellement', onPress: () => router.replace('/onboarding') },
+            ],
+          );
         }
         return;
       }
@@ -190,10 +197,10 @@ export default function OnboardingSeniorCodeScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         'Erreur de connexion',
-        'Impossible de contacter le serveur. Vérifiez votre connexion internet et réessayez.',
+        'Impossible de contacter le serveur. Vous pouvez réessayer ou configurer l\'app manuellement.',
         [
           { text: 'Réessayer', onPress: () => validateCode() },
-          { text: 'Annuler', style: 'cancel' },
+          { text: 'Configurer manuellement', onPress: () => router.replace('/onboarding') },
         ],
       );
     } finally {
