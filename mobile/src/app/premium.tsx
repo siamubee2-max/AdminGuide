@@ -106,8 +106,12 @@ export default function PremiumScreen() {
       queryClient.invalidateQueries({ queryKey: ['premium-status'] });
       queryClient.invalidateQueries({ queryKey: ['premium-status-detailed'] });
     },
-    onError: () => {
+    onError: (error) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Achat échoué',
+        'L\'achat n\'a pas pu être finalisé. Veuillez réessayer.',
+      );
     },
   });
 
@@ -235,7 +239,6 @@ export default function PremiumScreen() {
 
   const isLoading = checkingPremium || loadingOfferings;
   const isPurchasing = purchaseMutation.isPending || restoreMutation.isPending;
-  const packagesAvailable = selectedPlan === 'free' || !!getPackageForPlan(selectedPlan);
 
   // If user has family plan, show success state
   if (currentPlan === 'family') {

@@ -198,9 +198,9 @@ export default function CommunauteScreen() {
         throw new Error('Subscription failed');
       }
     } catch (error) {
-      // For demo, simulate success
-      setIsSubscribed(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.error('Newsletter subscription error:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Erreur', 'Impossible de s\'inscrire pour le moment. Réessayez plus tard.');
     } finally {
       setIsLoading(false);
     }
