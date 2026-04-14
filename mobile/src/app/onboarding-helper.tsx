@@ -94,6 +94,7 @@ export default function OnboardingHelperScreen() {
       pollingRef.current = setInterval(async () => {
         try {
           const response = await fetch(`${BACKEND_URL}/api/linking/status/${linkingCode}`);
+          if (!response.ok) return;
           const data = await response.json();
           if (data.isLinked) {
             setIsLinked(true);
@@ -128,6 +129,11 @@ export default function OnboardingHelperScreen() {
         }),
       });
 
+      if (!response.ok) {
+        Alert.alert('Erreur', 'Le service est temporairement indisponible. Réessayez plus tard.');
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setLinkingCode(data.code);
@@ -138,7 +144,14 @@ export default function OnboardingHelperScreen() {
       }
     } catch (error) {
       console.error('Error generating code:', error);
-      Alert.alert('Erreur', 'Problème de connexion. Vérifiez votre internet.');
+      Alert.alert(
+        'Erreur de connexion',
+        'Impossible de contacter le serveur. Vérifiez votre connexion internet et réessayez.',
+        [
+          { text: 'Réessayer', onPress: () => generateCode() },
+          { text: 'Annuler', style: 'cancel' },
+        ],
+      );
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +160,7 @@ export default function OnboardingHelperScreen() {
   const updateConfigOnServer = async () => {
     if (!linkingCode) return;
     try {
-      await fetch(`${BACKEND_URL}/api/linking/update-config`, {
+      const response = await fetch(`${BACKEND_URL}/api/linking/update-config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,6 +168,9 @@ export default function OnboardingHelperScreen() {
           seniorConfig,
         }),
       });
+      if (!response.ok) {
+        console.error('Error updating config: server returned', response.status);
+      }
     } catch (error) {
       console.error('Error updating config:', error);
     }

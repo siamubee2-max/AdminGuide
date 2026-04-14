@@ -121,6 +121,18 @@ export default function OnboardingSeniorCodeScreen() {
         }),
       });
 
+      if (!response.ok) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        if (response.status === 404) {
+          Alert.alert('Code invalide', 'Ce code n\'existe pas. Vérifiez auprès de votre proche.');
+        } else if (response.status === 410) {
+          Alert.alert('Code expiré', 'Ce code a expiré. Demandez un nouveau code à votre proche.');
+        } else {
+          Alert.alert('Erreur', 'Le service est temporairement indisponible. Réessayez plus tard.');
+        }
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -171,18 +183,19 @@ export default function OnboardingSeniorCodeScreen() {
         }
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        if (response.status === 404) {
-          Alert.alert('Code invalide', 'Ce code n\'existe pas. Vérifiez auprès de votre proche.');
-        } else if (response.status === 410) {
-          Alert.alert('Code expiré', 'Ce code a expiré. Demandez un nouveau code à votre proche.');
-        } else {
-          Alert.alert('Erreur', data.error || 'Une erreur est survenue.');
-        }
+        Alert.alert('Erreur', data.error || 'Une erreur est survenue.');
       }
     } catch (error) {
       console.error('Error validating code:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Erreur de connexion', 'Vérifiez votre connexion internet et réessayez.');
+      Alert.alert(
+        'Erreur de connexion',
+        'Impossible de contacter le serveur. Vérifiez votre connexion internet et réessayez.',
+        [
+          { text: 'Réessayer', onPress: () => validateCode() },
+          { text: 'Annuler', style: 'cancel' },
+        ],
+      );
     } finally {
       setIsLoading(false);
     }

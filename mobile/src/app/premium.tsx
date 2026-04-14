@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, Dimensions, Linking } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, Dimensions, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -219,6 +219,12 @@ export default function PremiumScreen() {
     if (pkg) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       purchaseMutation.mutate(pkg);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Abonnement indisponible',
+        'Les achats in-app ne sont pas disponibles pour le moment. Veuillez réessayer plus tard.',
+      );
     }
   };
 
@@ -229,6 +235,7 @@ export default function PremiumScreen() {
 
   const isLoading = checkingPremium || loadingOfferings;
   const isPurchasing = purchaseMutation.isPending || restoreMutation.isPending;
+  const packagesAvailable = selectedPlan === 'free' || !!getPackageForPlan(selectedPlan);
 
   // If user has family plan, show success state
   if (currentPlan === 'family') {
@@ -319,7 +326,9 @@ export default function PremiumScreen() {
                   setSelectedPlan('family');
                   handlePurchase('family');
                 }}
-                className="bg-emerald-500 rounded-2xl px-8 py-4 mb-4"
+                disabled={isPurchasing || loadingOfferings}
+                className="rounded-2xl px-8 py-4 mb-4"
+                style={{ backgroundColor: (isPurchasing || loadingOfferings) ? '#64748B' : '#10B981' }}
               >
                 <Text
                   className="text-white text-lg text-center"
@@ -623,15 +632,15 @@ export default function PremiumScreen() {
             ) : (
               <Pressable
                 onPress={() => handlePurchase(selectedPlan)}
-                disabled={isPurchasing}
+                disabled={isPurchasing || loadingOfferings}
                 className="rounded-2xl py-5 items-center active:scale-[0.98]"
                 style={{
-                  backgroundColor: isPurchasing
+                  backgroundColor: (isPurchasing || loadingOfferings)
                     ? '#64748B'
                     : plans.find(p => p.id === selectedPlan)?.color || '#2563EB',
                 }}
               >
-                {isPurchasing ? (
+                {(isPurchasing || loadingOfferings) ? (
                   <ActivityIndicator color="white" />
                 ) : (
                   <Text
